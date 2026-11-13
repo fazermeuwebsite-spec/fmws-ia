@@ -1,0 +1,8 @@
+{
+  "name": "FMWS SALES AI",
+  "description": "CRM inteligente e profissional para a Fazer Meu Website com automação comercial, WhatsApp Meta API, prospecção e agentes de IA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

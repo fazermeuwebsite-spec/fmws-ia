@@ -1,0 +1,299 @@
+{
+  "entities": {
+    "Workspace": {
+      "title": "Workspace",
+      "description": "Cloud persistence workspace owned by a verified Firebase user for FMWS SALES AI.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the workspace owner.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Workspace display name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "userCount": {
+          "type": "number",
+          "description": "Count of stored CRM users."
+        },
+        "leadCount": {
+          "type": "number",
+          "description": "Count of stored CRM leads."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of workspace creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last workspace update."
+        }
+      },
+      "required": ["ownerId", "name", "userCount", "leadCount", "createdAt", "updatedAt"]
+    },
+    "WorkspaceUser": {
+      "title": "WorkspaceUser",
+      "description": "Persisted CRM user record with bcrypt password hash (never plaintext).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the workspace owner.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "id": {
+          "type": "string",
+          "description": "Application user ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "User full name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Corporate email address.",
+          "minLength": 3,
+          "maxLength": 180
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "comercial", "suporte", "financeiro"],
+          "description": "RBAC role assigned to the user."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the user account is active."
+        },
+        "passwordHash": {
+          "type": "string",
+          "description": "Hashed password (bcrypt/scrypt). Never plaintext.",
+          "maxLength": 256
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Avatar URL.",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of record creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": ["ownerId", "id", "name", "email", "role", "active", "createdAt", "updatedAt"]
+    },
+    "WorkspaceStateBucket": {
+      "title": "WorkspaceStateBucket",
+      "description": "Structured native map storing non-user CRM records or stages/configs per bucket (never Meta secrets).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the workspace owner.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "bucketKey": {
+          "type": "string",
+          "enum": [
+            "leads",
+            "clients",
+            "prospects",
+            "whatsappConversations",
+            "whatsappLogs",
+            "proposals",
+            "projects",
+            "financialTransactions",
+            "supportTickets",
+            "aiAgents",
+            "services",
+            "crmStages",
+            "projectStages",
+            "integrationsConfig"
+          ],
+          "description": "Logical collection bucket key."
+        },
+        "items": {
+          "type": "array",
+          "description": "Native list of CRM domain objects in this bucket."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of bucket creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last bucket sync."
+        }
+      },
+      "required": ["ownerId", "bucketKey", "items", "createdAt", "updatedAt"]
+    },
+    "WhatsAppContactDoc": {
+      "title": "WhatsAppContactDoc",
+      "description": "Deduplicated WhatsApp contact keyed by normalized phone inside a workspace, linked to Lead/Client.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "normalizedPhone": { "type": "string", "minLength": 8, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "leadId": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "lastInboundAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "id", "normalizedPhone", "name", "createdAt", "updatedAt"]
+    },
+    "WhatsAppConversationDoc": {
+      "title": "WhatsAppConversationDoc",
+      "description": "WhatsApp Cloud API conversation state, AI automation toggle, attendant assignment, and closure metadata.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "contactId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "contactPhone": { "type": "string", "minLength": 8, "maxLength": 32 },
+        "waId": { "type": "string", "minLength": 8, "maxLength": 32 },
+        "phoneNumberId": { "type": "string", "maxLength": 64 },
+        "conversationKey": { "type": "string", "maxLength": 256 },
+        "contactName": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "leadId": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["ai_active", "human_takeover", "resolved"] },
+        "aiPaused": { "type": "boolean" },
+        "assignedAgent": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "assignedUserId": { "type": "string", "maxLength": 128 },
+        "lastMessage": { "type": "string", "maxLength": 2000 },
+        "lastMessageTimestamp": { "type": "string", "maxLength": 64 },
+        "lastInboundAt": { "type": "string", "maxLength": 64 },
+        "unreadCount": { "type": "number" },
+        "closedAt": { "type": "string", "maxLength": 64 },
+        "closedBy": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "id", "contactId", "contactPhone", "contactName", "status", "aiPaused", "assignedAgent", "unreadCount", "createdAt", "updatedAt"]
+    },
+    "WhatsAppMessageDoc": {
+      "title": "WhatsAppMessageDoc",
+      "description": "Individual WhatsApp message deduplicated by Meta message ID (wamid) with delivery/read status and direction.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "conversationId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sender": { "type": "string", "enum": ["contact", "agent", "system"] },
+        "direction": { "type": "string", "enum": ["inbound", "outbound", "system"] },
+        "senderName": { "type": "string", "maxLength": 160 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "status": { "type": "string", "enum": ["sending", "sent", "delivered", "read", "failed"] },
+        "metaMessageId": { "type": "string", "maxLength": 256 },
+        "phoneNumberId": { "type": "string", "maxLength": 64 },
+        "waId": { "type": "string", "maxLength": 32 },
+        "errorMessage": { "type": "string", "maxLength": 1000 },
+        "aiGenerated": { "type": "boolean" },
+        "timestamp": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "id", "conversationId", "sender", "text", "status", "aiGenerated", "timestamp", "createdAt", "updatedAt"]
+    },
+    "WhatsAppHandoverDoc": {
+      "title": "WhatsAppHandoverDoc",
+      "description": "Audit log entry of conversation handover, attendant assignment, AI pause/resume, and closure.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "conversationId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "action": { "type": "string", "minLength": 1, "maxLength": 48 },
+        "fromStatus": { "type": "string", "maxLength": 48 },
+        "toStatus": { "type": "string", "minLength": 1, "maxLength": 48 },
+        "assignedTo": { "type": "string", "maxLength": 120 },
+        "byUser": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "note": { "type": "string", "maxLength": 500 },
+        "at": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "id", "conversationId", "action", "toStatus", "byUser", "at", "createdAt", "updatedAt"]
+    },
+    "WhatsAppLogDoc": {
+      "title": "WhatsAppLogDoc",
+      "description": "Sanitized technical WhatsApp integration event log (never contains tokens or secrets).",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "source": { "type": "string", "enum": ["php_bridge", "php_webhook", "meta_direct", "outbound", "ai", "security", "verify", "handover"] },
+        "level": { "type": "string", "enum": ["info", "warning", "error"] },
+        "eventType": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "conversationId": { "type": "string", "maxLength": 128 },
+        "phoneNumberId": { "type": "string", "maxLength": 64 },
+        "wamid": { "type": "string", "maxLength": 256 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "httpStatus": { "type": "number" },
+        "timestamp": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "id", "source", "level", "eventType", "summary", "timestamp", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/Workspace" },
+      "description": "Root workspace metadata owned by a verified Firebase user."
+    },
+    "/workspaces/{workspaceId}/users/{userId}": {
+      "schema": { "$ref": "#/entities/WorkspaceUser" },
+      "description": "Persisted user accounts with bcrypt password hashes and RBAC roles."
+    },
+    "/workspaces/{workspaceId}/buckets/{bucketId}": {
+      "schema": { "$ref": "#/entities/WorkspaceStateBucket" },
+      "description": "Native Firestore lists storing CRM leads, clients, proposals, projects, financial, support, and stages."
+    },
+    "/workspaces/{workspaceId}/whatsappContacts/{contactId}": {
+      "schema": { "$ref": "#/entities/WhatsAppContactDoc" },
+      "description": "Deduplicated WhatsApp contacts keyed by normalized phone inside a workspace."
+    },
+    "/workspaces/{workspaceId}/whatsappConversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/WhatsAppConversationDoc" },
+      "description": "WhatsApp conversations with AI automation state, attendant assignment, and closure metadata."
+    },
+    "/workspaces/{workspaceId}/whatsappConversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/WhatsAppMessageDoc" },
+      "description": "Individual WhatsApp messages deduplicated by Meta message ID and delivery/read status."
+    },
+    "/workspaces/{workspaceId}/whatsappConversations/{conversationId}/handovers/{handoverId}": {
+      "schema": { "$ref": "#/entities/WhatsAppHandoverDoc" },
+      "description": "Transfer, attendant assignment, AI pause/resume, and closure history per conversation."
+    },
+    "/workspaces/{workspaceId}/whatsappLogs/{logId}": {
+      "schema": { "$ref": "#/entities/WhatsAppLogDoc" },
+      "description": "Sanitized technical WhatsApp integration logs (never exposes tokens or secrets)."
+    }
+  }
+}

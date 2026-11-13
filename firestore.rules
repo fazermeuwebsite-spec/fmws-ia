@@ -1,0 +1,437 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: default deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isVerifiedUser() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return isVerifiedUser() && request.auth.uid == workspaceId;
+    }
+
+    function isParentWorkspaceOwner(workspaceId) {
+      return isWorkspaceOwner(workspaceId)
+        && exists(/databases/$(database)/documents/workspaces/$(workspaceId))
+        && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+    }
+
+    function hasParentConversation(workspaceId, conversationId) {
+      return exists(/databases/$(database)/documents/workspaces/$(workspaceId)/whatsappConversations/$(conversationId))
+        || existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId)/whatsappConversations/$(conversationId));
+    }
+
+    function isValidWorkspace(data, workspaceId) {
+      return data.keys().hasAll(['ownerId', 'name', 'userCount', 'leadCount', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'name', 'userCount', 'leadCount', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && data.ownerId == workspaceId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.userCount is int && data.userCount >= 0 && data.userCount <= 1000
+        && data.leadCount is int && data.leadCount >= 0 && data.leadCount <= 50000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWorkspaceUser(data) {
+      return data.keys().hasAll(['ownerId', 'id', 'name', 'email', 'role', 'active', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'id', 'name', 'email', 'role', 'active', 'passwordHash', 'avatar', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 180
+        && data.role in ['admin', 'comercial', 'suporte', 'financeiro']
+        && data.active is bool
+        && (!('passwordHash' in data) || (data.passwordHash is string && data.passwordHash.size() <= 256))
+        && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBucket(data) {
+      return data.keys().hasAll(['ownerId', 'bucketKey', 'items', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'bucketKey', 'items', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && data.bucketKey in [
+          'leads',
+          'clients',
+          'prospects',
+          'whatsappConversations',
+          'whatsappLogs',
+          'proposals',
+          'projects',
+          'financialTransactions',
+          'supportTickets',
+          'aiAgents',
+          'services',
+          'crmStages',
+          'projectStages',
+          'integrationsConfig'
+        ]
+        && data.items is list && data.items.size() <= 500
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWhatsAppContact(data) {
+      return data.keys().hasAll(['ownerId', 'id', 'normalizedPhone', 'name', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'id', 'normalizedPhone', 'name', 'leadId', 'clientId', 'lastInboundAt', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && isValidId(data.id)
+        && data.normalizedPhone is string && data.normalizedPhone.size() >= 8 && data.normalizedPhone.size() <= 32
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 160
+        && (!('leadId' in data) || (data.leadId is string && data.leadId.size() <= 128))
+        && (!('clientId' in data) || (data.clientId is string && data.clientId.size() <= 128))
+        && (!('lastInboundAt' in data) || (data.lastInboundAt is string && data.lastInboundAt.size() <= 64))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWhatsAppConversation(data) {
+      return data.keys().hasAll([
+          'ownerId', 'id', 'contactId', 'contactPhone', 'contactName',
+          'status', 'aiPaused', 'assignedAgent', 'unreadCount', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'id', 'contactId', 'contactPhone', 'waId', 'phoneNumberId', 'conversationKey',
+          'contactName', 'leadId', 'clientId', 'status', 'aiPaused', 'assignedAgent', 'assignedUserId',
+          'lastMessage', 'lastMessageTimestamp', 'lastInboundAt', 'unreadCount',
+          'closedAt', 'closedBy', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && isValidId(data.id)
+        && isValidId(data.contactId)
+        && data.contactPhone is string && data.contactPhone.size() >= 8 && data.contactPhone.size() <= 32
+        && (!('waId' in data) || (data.waId is string && data.waId.size() >= 8 && data.waId.size() <= 32))
+        && (!('phoneNumberId' in data) || (data.phoneNumberId is string && data.phoneNumberId.size() <= 64))
+        && (!('conversationKey' in data) || (data.conversationKey is string && data.conversationKey.size() <= 256))
+        && data.contactName is string && data.contactName.size() >= 1 && data.contactName.size() <= 160
+        && (!('leadId' in data) || (data.leadId is string && data.leadId.size() <= 128))
+        && (!('clientId' in data) || (data.clientId is string && data.clientId.size() <= 128))
+        && data.status in ['ai_active', 'human_takeover', 'resolved']
+        && data.aiPaused is bool
+        && data.assignedAgent is string && data.assignedAgent.size() >= 1 && data.assignedAgent.size() <= 120
+        && (!('assignedUserId' in data) || (data.assignedUserId is string && data.assignedUserId.size() <= 128))
+        && (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 2000))
+        && (!('lastMessageTimestamp' in data) || (data.lastMessageTimestamp is string && data.lastMessageTimestamp.size() <= 64))
+        && (!('lastInboundAt' in data) || (data.lastInboundAt is string && data.lastInboundAt.size() <= 64))
+        && data.unreadCount is int && data.unreadCount >= 0 && data.unreadCount <= 10000
+        && (!('closedAt' in data) || (data.closedAt is string && data.closedAt.size() <= 64))
+        && (!('closedBy' in data) || (data.closedBy is string && data.closedBy.size() <= 120))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWhatsAppMessage(data) {
+      return data.keys().hasAll([
+          'ownerId', 'id', 'conversationId', 'sender', 'text', 'status',
+          'aiGenerated', 'timestamp', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'id', 'conversationId', 'sender', 'direction', 'senderName', 'text',
+          'status', 'metaMessageId', 'phoneNumberId', 'waId', 'errorMessage', 'aiGenerated',
+          'timestamp', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && isValidId(data.id)
+        && isValidId(data.conversationId)
+        && data.sender in ['contact', 'agent', 'system']
+        && (!('direction' in data) || data.direction in ['inbound', 'outbound', 'system'])
+        && (!('senderName' in data) || (data.senderName is string && data.senderName.size() <= 160))
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 4096
+        && data.status in ['sending', 'sent', 'delivered', 'read', 'failed']
+        && (!('metaMessageId' in data) || (data.metaMessageId is string && data.metaMessageId.size() <= 256))
+        && (!('phoneNumberId' in data) || (data.phoneNumberId is string && data.phoneNumberId.size() <= 64))
+        && (!('waId' in data) || (data.waId is string && data.waId.size() <= 32))
+        && (!('errorMessage' in data) || (data.errorMessage is string && data.errorMessage.size() <= 1000))
+        && data.aiGenerated is bool
+        && data.timestamp is string && data.timestamp.size() >= 1 && data.timestamp.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWhatsAppHandover(data) {
+      return data.keys().hasAll([
+          'ownerId', 'id', 'conversationId', 'action', 'toStatus', 'byUser', 'at', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'id', 'conversationId', 'action', 'fromStatus', 'toStatus',
+          'assignedTo', 'byUser', 'note', 'at', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && isValidId(data.id)
+        && isValidId(data.conversationId)
+        && data.action is string && data.action.size() >= 1 && data.action.size() <= 48
+        && (!('fromStatus' in data) || (data.fromStatus is string && data.fromStatus.size() <= 48))
+        && data.toStatus is string && data.toStatus.size() >= 1 && data.toStatus.size() <= 48
+        && (!('assignedTo' in data) || (data.assignedTo is string && data.assignedTo.size() <= 120))
+        && data.byUser is string && data.byUser.size() >= 1 && data.byUser.size() <= 120
+        && (!('note' in data) || (data.note is string && data.note.size() <= 500))
+        && data.at is string && data.at.size() >= 1 && data.at.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWhatsAppLog(data) {
+      return data.keys().hasAll([
+          'ownerId', 'id', 'source', 'level', 'eventType', 'summary', 'timestamp', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'id', 'source', 'level', 'eventType', 'conversationId', 'phoneNumberId',
+          'wamid', 'summary', 'httpStatus', 'timestamp', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+        && data.ownerId == request.auth.uid
+        && isValidId(data.id)
+        && data.source in ['php_bridge', 'php_webhook', 'meta_direct', 'outbound', 'ai', 'security', 'verify', 'handover']
+        && data.level in ['info', 'warning', 'error']
+        && data.eventType is string && data.eventType.size() >= 1 && data.eventType.size() <= 80
+        && (!('conversationId' in data) || (data.conversationId is string && data.conversationId.size() <= 128))
+        && (!('phoneNumberId' in data) || (data.phoneNumberId is string && data.phoneNumberId.size() <= 64))
+        && (!('wamid' in data) || (data.wamid is string && data.wamid.size() <= 256))
+        && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 600
+        && (!('httpStatus' in data) || (data.httpStatus is int && data.httpStatus >= 100 && data.httpStatus <= 599))
+        && data.timestamp is string && data.timestamp.size() >= 1 && data.timestamp.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Connection health check (read-only metadata doc; writes always denied)
+    match /test/connection {
+      allow get: if isVerifiedUser();
+      allow list, create, update, delete: if false;
+    }
+
+    // Root workspaces collection
+    match /workspaces/{workspaceId} {
+      allow get: if isValidId(workspaceId) && isWorkspaceOwner(workspaceId);
+      allow list: if isVerifiedUser() && existing().ownerId == request.auth.uid;
+
+      allow create: if isValidId(workspaceId)
+        && isWorkspaceOwner(workspaceId)
+        && isValidWorkspace(incoming(), workspaceId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(workspaceId)
+        && isWorkspaceOwner(workspaceId)
+        && isValidWorkspace(incoming(), workspaceId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'userCount', 'leadCount', 'updatedAt']);
+
+      allow delete: if isValidId(workspaceId) && isWorkspaceOwner(workspaceId);
+
+      // Users subcollection (PII & password hashes strictly isolated to workspace owner)
+      match /users/{userId} {
+        allow get: if isValidId(workspaceId) && isValidId(userId) && isWorkspaceOwner(workspaceId);
+        allow list: if isValidId(workspaceId) && isWorkspaceOwner(workspaceId) && existing().ownerId == request.auth.uid;
+
+        allow create: if isValidId(workspaceId) && isValidId(userId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidWorkspaceUser(incoming())
+          && incoming().id == userId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(workspaceId) && isValidId(userId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidWorkspaceUser(incoming())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name',
+            'email',
+            'role',
+            'active',
+            'passwordHash',
+            'avatar',
+            'updatedAt'
+          ]);
+
+        allow delete: if isValidId(workspaceId) && isValidId(userId) && isParentWorkspaceOwner(workspaceId);
+      }
+
+      // Structured CRM state buckets subcollection
+      match /buckets/{bucketId} {
+        allow get: if isValidId(workspaceId) && isValidId(bucketId) && isWorkspaceOwner(workspaceId);
+        allow list: if isValidId(workspaceId) && isWorkspaceOwner(workspaceId) && existing().ownerId == request.auth.uid;
+
+        allow create: if isValidId(workspaceId) && isValidId(bucketId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidBucket(incoming())
+          && incoming().bucketKey == bucketId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(workspaceId) && isValidId(bucketId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidBucket(incoming())
+          && incoming().bucketKey == existing().bucketKey
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['items', 'updatedAt']);
+
+        allow delete: if isValidId(workspaceId) && isValidId(bucketId) && isParentWorkspaceOwner(workspaceId);
+      }
+
+      // Deduplicated WhatsApp Contacts (keyed by normalized phone)
+      match /whatsappContacts/{contactId} {
+        allow get: if isValidId(workspaceId) && isValidId(contactId) && isWorkspaceOwner(workspaceId);
+        allow list: if isValidId(workspaceId) && isWorkspaceOwner(workspaceId) && existing().ownerId == request.auth.uid;
+
+        allow create: if isValidId(workspaceId) && isValidId(contactId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidWhatsAppContact(incoming())
+          && incoming().id == contactId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(workspaceId) && isValidId(contactId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidWhatsAppContact(incoming())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().normalizedPhone == existing().normalizedPhone
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'leadId', 'clientId', 'lastInboundAt', 'updatedAt']);
+
+        allow delete: if isValidId(workspaceId) && isValidId(contactId) && isParentWorkspaceOwner(workspaceId);
+      }
+
+      // WhatsApp Conversations
+      match /whatsappConversations/{conversationId} {
+        allow get: if isValidId(workspaceId) && isValidId(conversationId) && isWorkspaceOwner(workspaceId);
+        allow list: if isValidId(workspaceId) && isWorkspaceOwner(workspaceId) && existing().ownerId == request.auth.uid;
+
+        allow create: if isValidId(workspaceId) && isValidId(conversationId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidWhatsAppConversation(incoming())
+          && incoming().id == conversationId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(workspaceId) && isValidId(conversationId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidWhatsAppConversation(incoming())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().contactId == existing().contactId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'contactPhone',
+            'waId',
+            'phoneNumberId',
+            'conversationKey',
+            'contactName',
+            'leadId',
+            'clientId',
+            'status',
+            'aiPaused',
+            'assignedAgent',
+            'assignedUserId',
+            'lastMessage',
+            'lastMessageTimestamp',
+            'lastInboundAt',
+            'unreadCount',
+            'closedAt',
+            'closedBy',
+            'updatedAt'
+          ]);
+
+        allow delete: if isValidId(workspaceId) && isValidId(conversationId) && isParentWorkspaceOwner(workspaceId);
+
+        // Messages subcollection (deduplicated by Meta message ID when available)
+        match /messages/{messageId} {
+          allow get: if isValidId(workspaceId) && isValidId(conversationId) && isValidId(messageId) && isWorkspaceOwner(workspaceId);
+          allow list: if isValidId(workspaceId) && isValidId(conversationId) && isWorkspaceOwner(workspaceId) && existing().ownerId == request.auth.uid;
+
+          allow create: if isValidId(workspaceId) && isValidId(conversationId) && isValidId(messageId)
+            && isParentWorkspaceOwner(workspaceId)
+            && hasParentConversation(workspaceId, conversationId)
+            && isValidWhatsAppMessage(incoming())
+            && incoming().id == messageId
+            && incoming().conversationId == conversationId
+            && incoming().createdAt == request.time
+            && incoming().updatedAt == request.time;
+
+          allow update: if isValidId(workspaceId) && isValidId(conversationId) && isValidId(messageId)
+            && isParentWorkspaceOwner(workspaceId)
+            && hasParentConversation(workspaceId, conversationId)
+            && isValidWhatsAppMessage(incoming())
+            && incoming().id == existing().id
+            && incoming().conversationId == existing().conversationId
+            && incoming().ownerId == existing().ownerId
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'metaMessageId', 'errorMessage', 'direction', 'phoneNumberId', 'waId', 'updatedAt']);
+
+          allow delete: if isValidId(workspaceId) && isValidId(conversationId) && isValidId(messageId) && isParentWorkspaceOwner(workspaceId);
+        }
+
+        // Handover & transfer history subcollection (immutable audit entries)
+        match /handovers/{handoverId} {
+          allow get: if isValidId(workspaceId) && isValidId(conversationId) && isValidId(handoverId) && isWorkspaceOwner(workspaceId);
+          allow list: if isValidId(workspaceId) && isValidId(conversationId) && isWorkspaceOwner(workspaceId) && existing().ownerId == request.auth.uid;
+
+          allow create: if isValidId(workspaceId) && isValidId(conversationId) && isValidId(handoverId)
+            && isParentWorkspaceOwner(workspaceId)
+            && hasParentConversation(workspaceId, conversationId)
+            && isValidWhatsAppHandover(incoming())
+            && incoming().id == handoverId
+            && incoming().conversationId == conversationId
+            && incoming().createdAt == request.time
+            && incoming().updatedAt == request.time;
+
+          allow update: if false;
+          allow delete: if isValidId(workspaceId) && isValidId(conversationId) && isValidId(handoverId) && isParentWorkspaceOwner(workspaceId);
+        }
+      }
+
+      // Sanitized WhatsApp technical logs
+      match /whatsappLogs/{logId} {
+        allow get: if isValidId(workspaceId) && isValidId(logId) && isWorkspaceOwner(workspaceId);
+        allow list: if isValidId(workspaceId) && isWorkspaceOwner(workspaceId) && existing().ownerId == request.auth.uid;
+
+        allow create: if isValidId(workspaceId) && isValidId(logId)
+          && isParentWorkspaceOwner(workspaceId)
+          && isValidWhatsAppLog(incoming())
+          && incoming().id == logId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+
+        allow update: if false;
+        allow delete: if isValidId(workspaceId) && isValidId(logId) && isParentWorkspaceOwner(workspaceId);
+      }
+    }
+  }
+}

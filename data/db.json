@@ -1,0 +1,1613 @@
+{
+  "leads": [],
+  "clients": [
+    {
+      "tradeName": "Fazer Meu Website",
+      "id": "cli_1794556578360",
+      "contactName": "Nicolas Neves",
+      "address": "Rua austri, 56",
+      "email": "ola@fazermeuwebsite.com.br",
+      "city": "São Paulo",
+      "services": [
+        {
+          "name": "Hospedagem Linux Mensal",
+          "billingCycle": "mensal",
+          "type": "hospedagem",
+          "expiryDate": "2027-11-13",
+          "catalogServiceId": "srv_custom_1794555410109",
+          "monthlyValue": 35,
+          "domain": "",
+          "hostingServer": "",
+          "status": "ativo",
+          "id": "cs_1794556576093_573c"
+        }
+      ],
+      "mrr": 35,
+      "notes": "",
+      "contractStart": "2026-11-13",
+      "whatsapp": "5511986342981",
+      "status": "ativo",
+      "companyName": "Fazer Meu Website",
+      "state": "SP",
+      "phone": "",
+      "createdAt": "2026-11-13T07:56:18.360Z",
+      "cnpjCpf": "37935707898"
+    },
+    {
+      "status": "ativo",
+      "mrr": 35,
+      "whatsapp": "5511945736274",
+      "state": "SP",
+      "companyName": "Pro Incêndio LTDA",
+      "tradeName": "Pro Incêndio",
+      "id": "cli_1794555997592",
+      "cnpjCpf": "45.527.127/0001-00",
+      "phone": "",
+      "createdAt": "2026-11-13T07:46:37.592Z",
+      "city": "São Paulo",
+      "notes": "",
+      "contactName": "Roberto Rabelo",
+      "email": "roberto@proincendio.com.br",
+      "services": [
+        {
+          "domain": "",
+          "expiryDate": "2027-11-13",
+          "hostingServer": "",
+          "monthlyValue": 35,
+          "name": "Hospedagem Linux Mensal",
+          "status": "ativo",
+          "id": "cs_1794556520961_g9a7",
+          "type": "hospedagem",
+          "billingCycle": "mensal",
+          "catalogServiceId": "srv_custom_1794555410109"
+        }
+      ],
+      "address": "Estr. Júlio Cornetto, 1600 - Laranjeiras, Caieiras - SP, 07741-600",
+      "contractStart": "2026-11-13"
+    }
+  ],
+  "prospects": [
+    {
+      "state": "SP",
+      "createdAt": "2026-11-13T07:44:43.713Z",
+      "source": "google_places",
+      "websiteUrl": "",
+      "name": "Contato Comercial",
+      "whatsapp": "551132874819",
+      "id": "places_ChIJjbtocM1ZzpQR2oukSC6zD0w_1794555883713",
+      "company": "Clinica Odontológica COFA Odontologia",
+      "phone": "(11) 3287-4819",
+      "address": "Horsa 1 - Av. Paulista, 2073 - 22 andar - sala 2224 - Cerqueira César, São Paulo - SP, 01311-940",
+      "technicalAudit": {
+        "hasWebsite": false,
+        "mobileReady": false,
+        "ssl": false,
+        "score": 0,
+        "recommendedService": "Criação de Website",
+        "speedScore": 0,
+        "issues": [
+          "Sem website informado no Google Places"
+        ]
+      },
+      "city": "São Paulo",
+      "segment": "Odontologia",
+      "email": ""
+    },
+    {
+      "segment": "Comercio",
+      "phone": "(11) 5524-6753",
+      "city": "São Paulo",
+      "state": "SP",
+      "id": "places_ChIJC6tepSVQzpQRKASPSWV86GI_1794554248249",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "email": "",
+      "technicalAudit": {
+        "speedScore": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "score": 0,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true,
+        "mobileReady": false,
+        "ssl": false
+      },
+      "company": "São Paulo Mania",
+      "whatsapp": "551155246753",
+      "source": "google_places",
+      "address": "Av. das Nações Unidas, 22540 - Jurubatuba, São Paulo - SP, 04295-030",
+      "name": "Contato Comercial",
+      "websiteUrl": "https://www.saopaulomania.com.br/"
+    },
+    {
+      "phone": "(11) 2395-1000",
+      "address": "Rua Hannemann, 415 - Canindé, São Paulo - SP, 03031-040",
+      "whatsapp": "551123951000",
+      "company": "Galeria Pagé Brás",
+      "state": "SP",
+      "id": "places_ChIJQdr1B-9YzpQRhCEeHUT10QM_1794554248249",
+      "city": "São Paulo",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "name": "Contato Comercial",
+      "technicalAudit": {
+        "score": 0,
+        "hasWebsite": true,
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "ssl": false
+      },
+      "websiteUrl": "https://galeriapagebras.com.br/",
+      "segment": "Comercio",
+      "source": "google_places",
+      "email": ""
+    },
+    {
+      "technicalAudit": {
+        "speedScore": 0,
+        "ssl": false,
+        "mobileReady": false,
+        "hasWebsite": true,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente",
+        "score": 0
+      },
+      "name": "Contato Comercial",
+      "state": "SP",
+      "address": "R. Boa Vista, 51 - Centro Histórico de São Paulo, São Paulo - SP, 01014-001",
+      "company": "Associação Comercial de São Paulo",
+      "phone": "(11) 3180-3737",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "whatsapp": "551131803737",
+      "id": "places_ChIJ329WN1VYzpQR5_r8pneivig_1794554248249",
+      "city": "São Paulo",
+      "websiteUrl": "https://acsp.com.br/",
+      "source": "google_places",
+      "segment": "Comercio",
+      "email": ""
+    },
+    {
+      "segment": "Comercio",
+      "state": "SP",
+      "phone": "(11) 4003-4133",
+      "whatsapp": "551140034133",
+      "city": "São Paulo",
+      "source": "google_places",
+      "name": "Contato Comercial",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "address": "Av. Reg. Feijó, 1739 - Tatuapé, São Paulo - SP, 03342-000",
+      "company": "Shopping Anália Franco",
+      "websiteUrl": "https://www.shoppinganaliafranco.com.br/",
+      "id": "places_ChIJXXDeDYJezpQRgaQPlXbaml0_1794554248249",
+      "email": "",
+      "technicalAudit": {
+        "score": 0,
+        "mobileReady": false,
+        "speedScore": 0,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true,
+        "ssl": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ]
+      }
+    },
+    {
+      "id": "places_ChIJU6Ztw5ZYzpQRH-wv8FA7VSc_1794554248249",
+      "phone": "(11) 2224-5959",
+      "state": "SP",
+      "company": "Shopping Center Norte",
+      "name": "Contato Comercial",
+      "address": "Tv. Casalbuono, 120 - Vila Guilherme, São Paulo - SP, 02049-000",
+      "source": "google_places",
+      "email": "",
+      "technicalAudit": {
+        "speedScore": 0,
+        "score": 0,
+        "mobileReady": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true,
+        "ssl": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ]
+      },
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "city": "São Paulo",
+      "whatsapp": "551122245959",
+      "websiteUrl": "https://www.centernorte.com.br/",
+      "segment": "Comercio"
+    },
+    {
+      "segment": "Comercio",
+      "source": "google_places",
+      "websiteUrl": "https://www.shoppingvillalobos.com.br/",
+      "whatsapp": "551151081701",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "id": "places_ChIJnStoipdXzpQRZp2hkUX5CSI_1794554248249",
+      "email": "",
+      "technicalAudit": {
+        "score": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0,
+        "mobileReady": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "ssl": false,
+        "hasWebsite": true
+      },
+      "name": "Contato Comercial",
+      "city": "São Paulo",
+      "state": "SP",
+      "company": "Shopping Villa Lobos",
+      "address": "Av. Dra. Ruth Cardoso, 4777 - Jardim Universidade Pinheiros, São Paulo - SP, 05477-000",
+      "phone": "(11) 5108-1701"
+    },
+    {
+      "email": "",
+      "websiteUrl": "https://ibirapuera.com.br/",
+      "company": "Ibirapuera Shopping",
+      "name": "Contato Comercial",
+      "address": "Av. Ibirapuera, 3103 - Indianópolis, São Paulo - SP, 04088-005",
+      "id": "places_ChIJ04IdFglazpQRinICx3xqoO4_1794554248249",
+      "city": "São Paulo",
+      "technicalAudit": {
+        "hasWebsite": true,
+        "score": 0,
+        "ssl": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "speedScore": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "mobileReady": false
+      },
+      "phone": "(11) 5095-2300",
+      "source": "google_places",
+      "segment": "Comercio",
+      "state": "SP",
+      "whatsapp": "551150952300",
+      "createdAt": "2026-11-13T07:17:28.249Z"
+    },
+    {
+      "id": "places_ChIJ4z6JMO75zpQRxDFnM2od4TE_1794554248249",
+      "company": "MercadoCar Barra Funda",
+      "address": "Av. Marquês de S. Vicente, 1697 - Barra Funda, São Paulo - SP, 01139-003",
+      "websiteUrl": "https://www.mercadocar.com.br/",
+      "city": "São Paulo",
+      "email": "",
+      "whatsapp": "551122065000",
+      "segment": "Comercio",
+      "state": "SP",
+      "source": "google_places",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "name": "Contato Comercial",
+      "phone": "(11) 2206-5000",
+      "technicalAudit": {
+        "speedScore": 0,
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "score": 0,
+        "ssl": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true
+      }
+    },
+    {
+      "whatsapp": "5511911466312",
+      "name": "Contato Comercial",
+      "id": "places_ChIJ6VW4uJlZzpQRPGcBjU0J2G8_1794554248249",
+      "state": "SP",
+      "address": "Av. Paulista, 1941 - Bela Vista, São Paulo - SP, 01310-200",
+      "company": "Market Paulista",
+      "phone": "(11) 91146-6312",
+      "websiteUrl": "http://www.marketpaulista.com.br/",
+      "technicalAudit": {
+        "score": 0,
+        "speedScore": 0,
+        "mobileReady": false,
+        "hasWebsite": true,
+        "ssl": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente"
+      },
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "source": "google_places",
+      "city": "São Paulo",
+      "segment": "Comercio",
+      "email": ""
+    },
+    {
+      "technicalAudit": {
+        "speedScore": 0,
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true,
+        "score": 0,
+        "ssl": false
+      },
+      "city": "São Paulo",
+      "segment": "Comercio",
+      "source": "google_places",
+      "websiteUrl": "https://www.elevshopbras.com.br/",
+      "id": "places_ChIJx9ATKU9ZzpQRdaHzjUnNAvI_1794554248249",
+      "email": "",
+      "company": "Elev Shop Brás",
+      "address": "R. Tiers, 558 - Brás, São Paulo - SP, 03031-001",
+      "state": "SP",
+      "whatsapp": "551130339680",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "name": "Contato Comercial",
+      "phone": "(11) 3033-9680"
+    },
+    {
+      "address": "Av. das Nações Unidas, 14401 - Chácara Santo Antônio (Zona Sul), São Paulo - SP, 04794-000",
+      "technicalAudit": {
+        "mobileReady": false,
+        "speedScore": 0,
+        "ssl": false,
+        "score": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "hasWebsite": true,
+        "recommendedService": "Auditoria Técnica Pendente"
+      },
+      "company": "Shopping Parque da Cidade",
+      "name": "Contato Comercial",
+      "email": "",
+      "id": "places_ChIJ9WhjEjdXzpQRS_klZ0efnjs_1794554248249",
+      "source": "google_places",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "phone": "(11) 4410-5555",
+      "whatsapp": "551144105555",
+      "segment": "Comercio",
+      "websiteUrl": "http://shoppingparquedacidade.com.br/",
+      "city": "São Paulo",
+      "state": "SP"
+    },
+    {
+      "address": "R. Treze de Maio, 1947 - Bela Vista, São Paulo - SP, 01327-900",
+      "company": "Shopping Pátio Paulista",
+      "whatsapp": "",
+      "technicalAudit": {
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "hasWebsite": true,
+        "mobileReady": false,
+        "ssl": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "score": 0,
+        "speedScore": 0
+      },
+      "websiteUrl": "https://iguatemi.com.br/shoppingpatiopaulista",
+      "email": "",
+      "city": "São Paulo",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "source": "google_places",
+      "segment": "Comercio",
+      "id": "places_ChIJafLTfb1ZzpQRYDXmNv89J3I_1794554248249",
+      "name": "Contato Comercial",
+      "state": "SP",
+      "phone": ""
+    },
+    {
+      "id": "places_ChIJtb39eG1XzpQRrsiFJG_8XwA_1794554248249",
+      "city": "São Paulo",
+      "state": "SP",
+      "segment": "Comercio",
+      "whatsapp": "551130487344",
+      "technicalAudit": {
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0,
+        "ssl": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true,
+        "score": 0
+      },
+      "source": "google_places",
+      "phone": "(11) 3048-7344",
+      "company": "Shopping Iguatemi",
+      "address": "Av. Brig. Faria Lima, 2232 - Jardim Paulistano, São Paulo - SP, 01451-000",
+      "websiteUrl": "https://iguatemi.com.br/saopaulo/",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "email": "",
+      "name": "Contato Comercial"
+    },
+    {
+      "name": "Contato Comercial",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "technicalAudit": {
+        "hasWebsite": true,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "ssl": false,
+        "speedScore": 0,
+        "mobileReady": false,
+        "score": 0
+      },
+      "source": "google_places",
+      "id": "places_ChIJcwFkvOJXzpQRHtSx5FGIHXg_1794554248249",
+      "email": "",
+      "segment": "Comercio",
+      "state": "SP",
+      "address": "R. Palestra Itália, 500 - Perdizes, São Paulo - SP, 05005-030",
+      "whatsapp": "",
+      "company": "Bourbon Shopping São Paulo",
+      "phone": "",
+      "websiteUrl": "https://www.bourbonshopping.com.br/?utm_source=google&utm_medium=seo+maps+gmb&utm_campaign=pesquisa_saopaulo",
+      "city": "São Paulo"
+    },
+    {
+      "email": "",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "websiteUrl": "https://shopping25demarco.com.br/",
+      "company": "Shopping 25 de Março",
+      "technicalAudit": {
+        "score": 0,
+        "ssl": false,
+        "hasWebsite": true,
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0,
+        "recommendedService": "Auditoria Técnica Pendente"
+      },
+      "address": "R. Vinte e Cinco de Março, 1081 - Se, São Paulo - SP, 01021-200",
+      "name": "Contato Comercial",
+      "whatsapp": "551132281001",
+      "segment": "Comercio",
+      "id": "places_ChIJS5HiOhFZzpQR79yLP0yyfk4_1794554248249",
+      "phone": "(11) 3228-1001",
+      "city": "São Paulo",
+      "source": "google_places",
+      "state": "SP"
+    },
+    {
+      "segment": "Comercio",
+      "source": "google_places",
+      "state": "SP",
+      "city": "São Paulo",
+      "whatsapp": "551131011162",
+      "websiteUrl": "http://www.shoppingportogeral.com.br/",
+      "id": "places_ChIJz5pMoVVYzpQR5b52iyj96Nw_1794554248249",
+      "phone": "(11) 3101-1162",
+      "company": "Shopping Porto Geral",
+      "address": "Ladeira Porto Geral, 14 - Centro Histórico de São Paulo, São Paulo - SP, 01022-000",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "email": "",
+      "technicalAudit": {
+        "score": 0,
+        "hasWebsite": true,
+        "ssl": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0,
+        "mobileReady": false
+      },
+      "name": "Contato Comercial"
+    },
+    {
+      "id": "places_ChIJk7tg5h9ZzpQRkqXmEo4hh2M_1794554248249",
+      "whatsapp": "551121215900",
+      "state": "SP",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "technicalAudit": {
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente",
+        "score": 0,
+        "hasWebsite": true,
+        "mobileReady": false,
+        "ssl": false,
+        "speedScore": 0
+      },
+      "city": "São Paulo",
+      "websiteUrl": "http://www.comerciarios.org.br/",
+      "source": "google_places",
+      "phone": "(11) 2121-5900",
+      "segment": "Comercio",
+      "email": "",
+      "company": "Sindicato dos Comerciários de São Paulo",
+      "address": "R. Formosa, 99 - Centro Histórico de São Paulo, São Paulo - SP, 01049-000",
+      "name": "Contato Comercial"
+    },
+    {
+      "whatsapp": "551120759900",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "name": "Contato Comercial",
+      "address": "Estacionamento de Ônibus - R. São Caetano, 812 - Brás, São Paulo - SP, 01104-001",
+      "company": "Circuito de Compras - Feira da Madrugada",
+      "id": "places_ChIJJdrM8wtZzpQRgX7DHkF0rC0_1794554248249",
+      "email": "",
+      "technicalAudit": {
+        "hasWebsite": true,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "score": 0,
+        "ssl": false,
+        "mobileReady": false,
+        "speedScore": 0
+      },
+      "state": "SP",
+      "source": "google_places",
+      "city": "São Paulo",
+      "phone": "(11) 2075-9900",
+      "websiteUrl": "https://novafeiradamadrugada.com.br/",
+      "segment": "Comercio"
+    },
+    {
+      "address": "R. da Cantareira, 306 - Centro Histórico de São Paulo, São Paulo - SP, 01024-900",
+      "phone": "(11) 4580-1390",
+      "company": "Mercado Municipal de São Paulo",
+      "id": "places_ChIJBQICYYxfzpQR9P4GxnTkmgA_1794554248249",
+      "city": "São Paulo",
+      "websiteUrl": "https://www.instagram.com/mercadaospoficial/",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "source": "google_places",
+      "state": "SP",
+      "pitchDraft": "Olá, equipe do Mercadão de São Paulo. Estava analisando a presença digital de vocês e notei que, embora o perfil do Instagram seja ativo, o site institucional atual não está sendo utilizado como o principal canal de conversão ou experiência para o cliente. Como especialistas em transformar presença digital em vendas, adoraríamos mostrar como podemos potencializar a jornada do seu visitante. Podemos conversar brevemente sobre como otimizar esse canal?",
+      "whatsapp": "551145801390",
+      "name": "Contato Comercial",
+      "aiInsights": "O cliente possui uma presença digital fragmentada, dependendo fortemente do Instagram sem um hub centralizado de conversão. Embora o site responda (200 OK) e esteja tecnicamente saudável, ele é subutilizado comercialmente. A estratégia deve ser vender uma modernização da experiência do usuário (UX) e a implementação de funcionalidades que facilitem o comércio e a interação, saindo de um site puramente estático para uma ferramenta de geração de receita.",
+      "email": "",
+      "segment": "Comercio",
+      "technicalAudit": {
+        "hasWebsite": true,
+        "score": 100,
+        "checkedAt": "2026-11-13T07:18:30.140Z",
+        "speedScore": 95,
+        "pageTitle": "Instagram",
+        "httpStatus": 200,
+        "responseTimeMs": 223,
+        "ssl": true,
+        "mobileReady": true,
+        "domainAvailable": false,
+        "issues": [
+          "Nenhum erro crítico detectado na verificação HTTP básica"
+        ],
+        "recommendedService": "Manutenção / Evolução SEO"
+      }
+    },
+    {
+      "source": "google_places",
+      "email": "",
+      "segment": "Comercio",
+      "name": "Contato Comercial",
+      "createdAt": "2026-11-13T07:17:28.249Z",
+      "state": "SP",
+      "whatsapp": "551135951230",
+      "websiteUrl": "https://www.shoppingcidadesp.com.br/",
+      "city": "São Paulo",
+      "id": "places_ChIJbf1JiMhZzpQRarPl5lKGKmw_1794554248249",
+      "company": "Shopping Cidade São Paulo",
+      "phone": "(11) 3595-1230",
+      "address": "Av. Paulista, 1230 - Bela Vista, São Paulo - SP, 01310-100",
+      "technicalAudit": {
+        "hasWebsite": true,
+        "mobileReady": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "score": 0,
+        "speedScore": 0,
+        "ssl": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ]
+      }
+    },
+    {
+      "name": "Contato Comercial",
+      "address": "Av. Paulista, 925 - Bela Vista, São Paulo - SP, 01310-100",
+      "company": "Benatti Odontologia",
+      "email": "",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "technicalAudit": {
+        "hasWebsite": true,
+        "mobileReady": false,
+        "score": 0,
+        "ssl": false,
+        "speedScore": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente"
+      },
+      "websiteUrl": "https://benattiodontologia.com.br/",
+      "phone": "(11) 97632-4570",
+      "whatsapp": "5511976324570",
+      "segment": "Odontologia",
+      "id": "places_ChIJB9m9hsdZzpQRxO1MbJ_2uY0_1794553413711",
+      "state": "SP",
+      "source": "google_places",
+      "city": "São Paulo"
+    },
+    {
+      "company": "Dentista Zona Leste | Siso | Implante Dentario | Protese Protocolo | OdontoGama | Protese Dentaria | Conserto de Dentadura",
+      "address": "Rua Frei Mont'Alverne, 383 - Vila Aricanduva, São Paulo - SP, 03505-030",
+      "city": "São Paulo",
+      "websiteUrl": "http://odontogama.com.br/",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "source": "google_places",
+      "email": "",
+      "whatsapp": "551134594440",
+      "state": "SP",
+      "segment": "Odontologia",
+      "technicalAudit": {
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "score": 0,
+        "mobileReady": false,
+        "hasWebsite": true,
+        "ssl": false
+      },
+      "id": "places_ChIJfcqo_UZhzpQR23IkdoJ1_w8_1794553413711",
+      "name": "Contato Comercial",
+      "phone": "(11) 3459-4440"
+    },
+    {
+      "address": "R. Heitor Penteado, nº 2163 - Sumarezinho, São Paulo - SP, 05437-002",
+      "company": "Dentista 24horas",
+      "whatsapp": "551134492324",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "name": "Contato Comercial",
+      "state": "SP",
+      "source": "google_places",
+      "phone": "(11) 3449-2324",
+      "technicalAudit": {
+        "speedScore": 0,
+        "recommendedService": "Criação de Website",
+        "mobileReady": false,
+        "issues": [
+          "Sem website informado no Google Places"
+        ],
+        "ssl": false,
+        "hasWebsite": false,
+        "score": 0
+      },
+      "id": "places_ChIJA9JV1cRXzpQRpVzL7y3HABQ_1794553413711",
+      "segment": "Odontologia",
+      "city": "São Paulo",
+      "websiteUrl": "",
+      "email": ""
+    },
+    {
+      "websiteUrl": "https://hochospitalodontologico.com.br/",
+      "state": "SP",
+      "phone": "(11) 5056-4040",
+      "source": "google_places",
+      "city": "São Paulo",
+      "segment": "Odontologia",
+      "name": "Contato Comercial",
+      "id": "places_ChIJwewXuhtazpQRvBKIjCN6BHc_1794553413711",
+      "technicalAudit": {
+        "recommendedService": "Auditoria Técnica Pendente",
+        "speedScore": 0,
+        "score": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "ssl": false,
+        "hasWebsite": true,
+        "mobileReady": false
+      },
+      "whatsapp": "551150564040",
+      "address": "Av. Indianópolis, 153 - Moema, São Paulo - SP, 04063-000",
+      "company": "HOC Hospital Odontológico",
+      "email": "",
+      "createdAt": "2026-11-13T07:03:33.711Z"
+    },
+    {
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "phone": "(11) 5587-4809",
+      "id": "places_ChIJsSSByk5azpQRjdRMt6izKBg_1794553413711",
+      "city": "São Paulo",
+      "whatsapp": "551155874809",
+      "state": "SP",
+      "segment": "Odontologia",
+      "technicalAudit": {
+        "ssl": false,
+        "speedScore": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente",
+        "score": 0,
+        "hasWebsite": true,
+        "mobileReady": false
+      },
+      "email": "",
+      "name": "Contato Comercial",
+      "address": "Av. Indianópolis, 1838 - Planalto Paulista, São Paulo - SP, 04062-002",
+      "company": "Dentistas 24 horas",
+      "source": "google_places",
+      "websiteUrl": "http://www.sosdentistas.com.br/"
+    },
+    {
+      "segment": "Odontologia",
+      "state": "SP",
+      "whatsapp": "551130896060",
+      "name": "Contato Comercial",
+      "technicalAudit": {
+        "recommendedService": "Auditoria Técnica Pendente",
+        "speedScore": 0,
+        "score": 0,
+        "mobileReady": false,
+        "ssl": false,
+        "hasWebsite": true,
+        "issues": [
+          "Aguardando auditoria individual"
+        ]
+      },
+      "phone": "(11) 3089-6060",
+      "id": "places_ChIJa1IWk3hXzpQRh9uzTAurJzo_1794553413711",
+      "source": "google_places",
+      "company": "Dentista 24 horas",
+      "address": "Av. Rebouças, 1693 - Pinheiros, São Paulo - SP, 05401-200",
+      "city": "São Paulo",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "email": "",
+      "websiteUrl": "http://www.dentistas24h.com.br/"
+    },
+    {
+      "city": "São Paulo",
+      "technicalAudit": {
+        "speedScore": 0,
+        "hasWebsite": true,
+        "score": 0,
+        "ssl": false,
+        "mobileReady": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "issues": [
+          "Aguardando auditoria individual"
+        ]
+      },
+      "state": "SP",
+      "segment": "Odontologia",
+      "source": "google_places",
+      "websiteUrl": "https://sorridents.com.br/",
+      "phone": "(11) 2227-3700",
+      "company": "Sorridents Clínicas Odontológicas Tatuapé São Paulo",
+      "address": "R. Tuiuti, 2421 - Tatuapé, São Paulo - SP, 03307-000",
+      "id": "places_ChIJvYQyJFNYzpQRs_wmN45h0h0_1794553413711",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "whatsapp": "551122273700",
+      "email": "",
+      "name": "Contato Comercial"
+    },
+    {
+      "source": "google_places",
+      "state": "SP",
+      "segment": "Odontologia",
+      "phone": "(11) 94506-8360",
+      "whatsapp": "5511945068360",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "city": "São Paulo",
+      "websiteUrl": "http://www.saopaulodentalstudio.com.br/",
+      "name": "Contato Comercial",
+      "technicalAudit": {
+        "score": 0,
+        "speedScore": 0,
+        "ssl": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "hasWebsite": true
+      },
+      "id": "places_ChIJhWy8kWVZzpQRqOQbr2ox5C4_1794553413711",
+      "address": "Av. Angélica, 2582 - 1° andar - Higienópolis, São Paulo - SP, 01228-200",
+      "email": "",
+      "company": "Clínica São Paulo Dental Studio"
+    },
+    {
+      "id": "places_ChIJNyIhbfpRzpQR0_oA2noNJUo_1794553413711",
+      "state": "SP",
+      "city": "São Paulo",
+      "source": "google_places",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "phone": "(11) 97870-1586",
+      "segment": "Odontologia",
+      "whatsapp": "5511978701586",
+      "email": "",
+      "company": "Odonto Plus - Dentista 24H, Urgência e emergências / Implantes dentários",
+      "websiteUrl": "",
+      "address": "Atendemos urgência e emergência 24H somente com agendamento - R. da Paz, 1601 - conj. 1507/1508 - Chácara Santo Antônio, São Paulo - SP, 04713-002",
+      "technicalAudit": {
+        "speedScore": 0,
+        "ssl": false,
+        "recommendedService": "Criação de Website",
+        "issues": [
+          "Sem website informado no Google Places"
+        ],
+        "hasWebsite": false,
+        "mobileReady": false,
+        "score": 0
+      },
+      "name": "Contato Comercial"
+    },
+    {
+      "whatsapp": "551120971155",
+      "state": "SP",
+      "city": "São Paulo",
+      "segment": "Odontologia",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "id": "places_ChIJDRtSPgBfzpQRT9NaqKLw8Yc_1794553413711",
+      "technicalAudit": {
+        "recommendedService": "Auditoria Técnica Pendente",
+        "speedScore": 0,
+        "ssl": false,
+        "hasWebsite": true,
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "score": 0
+      },
+      "phone": "(11) 2097-1155",
+      "source": "google_places",
+      "websiteUrl": "https://odontourgente.com.br/?utm_source=google&utm_medium=organic&utm_campaign=google_business_profile&utm_content=tatuape",
+      "email": "",
+      "company": "Dentista 24hrs | Odonto Urgente Tatuapé",
+      "address": "R. Cel. Luís Americano, 265 - Tatuapé, São Paulo - SP, 03308-020",
+      "name": "Contato Comercial"
+    },
+    {
+      "city": "São Paulo",
+      "websiteUrl": "https://www.unip.br/",
+      "email": "",
+      "source": "google_places",
+      "company": "UNIP - Odontologia",
+      "address": "Av. José Maria Whitaker, 320 - Planalto Paulista, São Paulo - SP, 04057-000",
+      "whatsapp": "551155864132",
+      "technicalAudit": {
+        "score": 0,
+        "speedScore": 0,
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "ssl": false,
+        "hasWebsite": true,
+        "recommendedService": "Auditoria Técnica Pendente"
+      },
+      "segment": "Odontologia",
+      "id": "places_ChIJWa9cvz1azpQRxAlWkRG5uvM_1794553413711",
+      "phone": "(11) 5586-4132",
+      "state": "SP",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "name": "Contato Comercial"
+    },
+    {
+      "phone": "(11) 3091-7418",
+      "websiteUrl": "http://www.fo.usp.br/",
+      "address": "Avenida Professor Lineu Prestes, 2227 - Cidade Universitária CEP: 05508-000 - Butantã, São Paulo - SP, 05508-000",
+      "whatsapp": "551130917418",
+      "company": "Faculdade de Odontologia da Universidade de São Paulo (FOUSP)",
+      "state": "SP",
+      "id": "places_ChIJQ4ROFEJWzpQRxQwdhGH7PNQ_1794553413711",
+      "city": "São Paulo",
+      "name": "Contato Comercial",
+      "technicalAudit": {
+        "recommendedService": "Auditoria Técnica Pendente",
+        "ssl": false,
+        "speedScore": 0,
+        "hasWebsite": true,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "mobileReady": false,
+        "score": 0
+      },
+      "segment": "Odontologia",
+      "email": "",
+      "source": "google_places",
+      "createdAt": "2026-11-13T07:03:33.711Z"
+    },
+    {
+      "whatsapp": "551123067787",
+      "id": "places_ChIJleiA8ClZzpQRZ962SiRfG9Q_1794553413711",
+      "state": "SP",
+      "address": "R. Pamplona, 1348 - Jardim Paulista, São Paulo - SP, 01405-002",
+      "city": "São Paulo",
+      "company": "Odentz 24h Clínica Odontológica - Unidade Pamplona",
+      "phone": "(11) 2306-7787",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "technicalAudit": {
+        "speedScore": 0,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "ssl": false,
+        "hasWebsite": true,
+        "mobileReady": false,
+        "score": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ]
+      },
+      "name": "Contato Comercial",
+      "source": "google_places",
+      "websiteUrl": "https://odentz.com.br/",
+      "segment": "Odontologia",
+      "email": ""
+    },
+    {
+      "city": "São Paulo",
+      "technicalAudit": {
+        "score": 0,
+        "speedScore": 0,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "mobileReady": false,
+        "hasWebsite": true,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "ssl": false
+      },
+      "company": "PLANTÃO ODONTO 24 HORAS SENA MADUREIRA",
+      "whatsapp": "5511939084232",
+      "address": "R. Sena Madureira, 566 - Vila Clementino, São Paulo - SP, 04021-000",
+      "email": "",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "state": "SP",
+      "websiteUrl": "http://www.plantaoodonto24horas.com.br/",
+      "id": "places_ChIJfdT7lhNbzpQRquyyyuHKpMw_1794553413711",
+      "source": "google_places",
+      "segment": "Odontologia",
+      "name": "Contato Comercial",
+      "phone": "(11) 93908-4232"
+    },
+    {
+      "phone": "(11) 94828-9927",
+      "websiteUrl": "https://spb.odo.br/",
+      "city": "São Paulo",
+      "whatsapp": "5511948289927",
+      "state": "SP",
+      "segment": "Odontologia",
+      "technicalAudit": {
+        "score": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente",
+        "speedScore": 0,
+        "ssl": false,
+        "mobileReady": false,
+        "hasWebsite": true
+      },
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "name": "Contato Comercial",
+      "id": "places_ChIJWcjGXT9bzpQRZNA7Db-Q4Eg_1794553413711",
+      "email": "",
+      "address": "R. Léo de Morais, 63 - Vila das Merces, São Paulo - SP, 04165-150",
+      "company": "Dentista 24 horas (por demanda) - SPB Odontologia",
+      "source": "google_places"
+    },
+    {
+      "city": "São Paulo",
+      "state": "SP",
+      "id": "places_ChIJfVK7uS5azpQRQmFCJIgYiDo_1794553413711",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "segment": "Odontologia",
+      "phone": "(11) 5549-3030",
+      "whatsapp": "551155493030",
+      "company": "Centro Odontológico 24 horas Sena Madureira",
+      "technicalAudit": {
+        "mobileReady": false,
+        "speedScore": 0,
+        "ssl": false,
+        "score": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true
+      },
+      "address": "R. Sena Madureira, 179 - Vila Mariana, São Paulo - SP, 04021-050",
+      "source": "google_places",
+      "email": "",
+      "name": "Contato Comercial",
+      "websiteUrl": "https://plantaoodonto.com.br/"
+    },
+    {
+      "websiteUrl": "https://www.odontologia24horas.com.br/",
+      "name": "Contato Comercial",
+      "email": "",
+      "source": "google_places",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "segment": "Odontologia",
+      "id": "places_ChIJ3cO8SN5bzpQRmohmiSYYmSo_1794553413711",
+      "state": "SP",
+      "whatsapp": "551122730023",
+      "technicalAudit": {
+        "recommendedService": "Auditoria Técnica Pendente",
+        "ssl": false,
+        "hasWebsite": true,
+        "score": 0,
+        "mobileReady": false,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0
+      },
+      "city": "São Paulo",
+      "company": "Dentista 24 Horas e Pronto Socorro Odontológico Dra Danielly Odontologia24horas",
+      "address": "Av. Dr. Ricardo Jafet, 457 - Sl 2 - Ipiranga, São Paulo - SP, 04260-020",
+      "phone": "(11) 2273-0023"
+    },
+    {
+      "state": "SP",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "source": "google_places",
+      "technicalAudit": {
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "score": 0,
+        "speedScore": 0,
+        "ssl": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "hasWebsite": true,
+        "mobileReady": false
+      },
+      "name": "Contato Comercial",
+      "whatsapp": "5511992515610",
+      "company": "Dentista 24h - Centro SP - Dr Erick Andrade CRO 131.232",
+      "address": "R. Tabatinguera, 140 - Conj 502 - Sé, São Paulo - SP, 01020-901",
+      "phone": "(11) 99251-5610",
+      "id": "places_ChIJGzP0ZLlZzpQRu3YsAj7yqpw_1794553413711",
+      "websiteUrl": "http://www.erickandradedentista.com.br/",
+      "city": "São Paulo",
+      "segment": "Odontologia",
+      "email": ""
+    },
+    {
+      "whatsapp": "5511996291093",
+      "technicalAudit": {
+        "hasWebsite": true,
+        "ssl": false,
+        "mobileReady": false,
+        "recommendedService": "Auditoria Técnica Pendente",
+        "score": 0,
+        "speedScore": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ]
+      },
+      "email": "",
+      "name": "Contato Comercial",
+      "segment": "Odontologia",
+      "state": "SP",
+      "city": "São Paulo",
+      "createdAt": "2026-11-13T07:03:33.711Z",
+      "websiteUrl": "http://www.odontologiafrison.com.br/",
+      "company": "Dentista 24h - Centro SP - Urgências - Dr. Bruno Frison - CROSP 128.512",
+      "address": "R. Tabatinguera, 140 - conjunto 1306 - Sé, São Paulo - SP, 03216-050",
+      "source": "google_places",
+      "id": "places_ChIJzRJsyKNZzpQRtyT1Q4lXHVE_1794553413711",
+      "phone": "(11) 99629-1093"
+    },
+    {
+      "name": "Contato Comercial",
+      "state": "SP",
+      "address": "Av. São Gabriel, 201 - Conj 402 - Itaim Bibi, São Paulo - SP, 01435-001",
+      "company": "Dra Lara Lavin",
+      "websiteUrl": "https://dralaralavin.com.br/",
+      "phone": "(11) 99971-3210",
+      "id": "places_ChIJZ_agiV9XzpQRewyblw0NmpE_1794553413711",
+      "source": "google_places",
+      "technicalAudit": {
+        "ssl": false,
+        "hasWebsite": true,
+        "score": 0,
+        "issues": [
+          "Aguardando auditoria individual"
+        ],
+        "speedScore": 0,
+        "mobileReady": false,
+        "recommendedService": "Auditoria Técnica Pendente"
+      },
+      "segment": "Odontologia",
+      "whatsapp": "5511999713210",
+      "email": "",
+      "city": "São Paulo",
+      "createdAt": "2026-11-13T07:03:33.711Z"
+    }
+  ],
+  "whatsappConversations": [
+    {
+      "status": "human_takeover",
+      "assignedAgent": "Humano",
+      "tags": [
+        "Atendimento Direto"
+      ],
+      "lastMessageTimestamp": "2026-11-13T09:50:14.040Z",
+      "clientId": "cli_1794556578360",
+      "contactPhone": "5511986342981",
+      "id": "conv_1794559048031",
+      "messages": [
+        {
+          "sender": "agent",
+          "status": "delivered",
+          "aiGenerated": false,
+          "text": "ola",
+          "senderName": "nicolas neves",
+          "timestamp": "2026-11-13T08:37:30.974Z",
+          "id": "msg_1794559050974_785"
+        },
+        {
+          "senderName": "nicolas neves",
+          "id": "msg_1794559238753_281",
+          "sender": "agent",
+          "aiGenerated": false,
+          "status": "delivered",
+          "timestamp": "2026-11-13T08:40:38.753Z",
+          "text": "oi"
+        },
+        {
+          "id": "msg_1794560438221_131",
+          "sender": "agent",
+          "senderName": "nicolas neves",
+          "text": "teste",
+          "timestamp": "2026-11-13T09:00:38.221Z",
+          "status": "failed",
+          "errorMessage": "Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações.",
+          "aiGenerated": false
+        },
+        {
+          "id": "msg_1794563115446_333",
+          "sender": "agent",
+          "senderName": "nicolas neves",
+          "text": "oi",
+          "timestamp": "2026-11-13T09:45:15.446Z",
+          "status": "sent",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkNCMTQ3Q0MyQkMzNkFDMzkyMAA=",
+          "aiGenerated": false
+        },
+        {
+          "id": "msg_1794563129265_665",
+          "sender": "agent",
+          "senderName": "nicolas neves",
+          "text": "Olá! Vou consultar nosso catálogo oficial e te passar os valores e prazos certinhos para o seu projeto.",
+          "timestamp": "2026-11-13T09:45:29.265Z",
+          "status": "sent",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjIyRjE2NkQ4OEQxRDYxQTI4QwA=",
+          "aiGenerated": false
+        },
+        {
+          "id": "msg_1794563414040_886",
+          "sender": "agent",
+          "senderName": "nicolas neves",
+          "text": "oi",
+          "timestamp": "2026-11-13T09:50:14.040Z",
+          "status": "sent",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjUwRDYwNTlBMDcyMTJBQTREMQA=",
+          "aiGenerated": false
+        }
+      ],
+      "unreadCount": 0,
+      "channel": "meta_cloud",
+      "lastMessage": "oi",
+      "contactName": "Nicolas Neves (Fazer Meu Website)",
+      "aiPaused": true,
+      "handoverHistory": [
+        {
+          "id": "ho_1794563123024_232",
+          "action": "returned_to_ai",
+          "fromStatus": "human_takeover",
+          "toStatus": "ai_active",
+          "assignedTo": "Atendente IA",
+          "byUser": "nicolas neves",
+          "at": "2026-11-13T09:45:23.024Z"
+        },
+        {
+          "id": "ho_1794563205425_261",
+          "action": "assumed_human",
+          "fromStatus": "ai_active",
+          "toStatus": "human_takeover",
+          "assignedTo": "Humano",
+          "byUser": "nicolas neves",
+          "at": "2026-11-13T09:46:45.425Z"
+        }
+      ]
+    }
+  ],
+  "whatsappLogs": [
+    {
+      "id": "walog_1794563414039_146",
+      "timestamp": "2026-11-13T09:50:14.039Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_1794559048031",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjUwRDYwNTlBMDcyMTJBQTREMQA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794563205426_9743",
+      "timestamp": "2026-11-13T09:46:45.426Z",
+      "source": "handover",
+      "level": "info",
+      "eventType": "handover_assumed_human",
+      "conversationId": "conv_1794559048031",
+      "summary": "Handover (assumed_human) por nicolas neves: status=human_takeover, responsável=Humano, aiPaused=true."
+    },
+    {
+      "id": "walog_1794563129264_2511",
+      "timestamp": "2026-11-13T09:45:29.264Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_1794559048031",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjIyRjE2NkQ4OEQxRDYxQTI4QwA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794563123025_3152",
+      "timestamp": "2026-11-13T09:45:23.025Z",
+      "source": "handover",
+      "level": "info",
+      "eventType": "handover_returned_to_ai",
+      "conversationId": "conv_1794559048031",
+      "summary": "Handover (returned_to_ai) por nicolas neves: status=ai_active, responsável=Atendente IA, aiPaused=false."
+    },
+    {
+      "id": "walog_1794563115445_6162",
+      "timestamp": "2026-11-13T09:45:15.445Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_1794559048031",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkNCMTQ3Q0MyQkMzNkFDMzkyMAA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794560798619_1035",
+      "timestamp": "2026-11-13T09:06:38.619Z",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_discarded_handover",
+      "conversationId": "conv_1794560793737_542",
+      "summary": "Resposta da IA descartada porque um humano assumiu ou pausou a conversa."
+    },
+    {
+      "id": "walog_1794560795320_6431",
+      "timestamp": "2026-11-13T09:06:35.320Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "php_webhook_verify",
+      "httpStatus": 200,
+      "summary": "Webhook PHP oficial validado (HTTP 200, challenge confirmado)."
+    },
+    {
+      "id": "walog_1794560794828_8225",
+      "timestamp": "2026-11-13T09:06:34.828Z",
+      "source": "verify",
+      "level": "error",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Falha no teste Meta Graph API: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
+    },
+    {
+      "id": "walog_1794560794702_4930",
+      "timestamp": "2026-11-13T09:06:34.702Z",
+      "source": "outbound",
+      "level": "error",
+      "eventType": "manual_send_failed",
+      "conversationId": "conv_1794560793737_542",
+      "summary": "Falha ao enviar para +5511999990001: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
+    },
+    {
+      "id": "walog_1794560793852_4055",
+      "timestamp": "2026-11-13T09:06:33.852Z",
+      "source": "php_bridge",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_1794560793737_542",
+      "wamid": "wamid.test_1794560793848_3",
+      "summary": "Mensagem recebida de +5511999990001 salva (human_takeover)."
+    },
+    {
+      "id": "walog_1794560793846_39",
+      "timestamp": "2026-11-13T09:06:33.846Z",
+      "source": "handover",
+      "level": "info",
+      "eventType": "handover_transferred",
+      "conversationId": "conv_1794560793737_542",
+      "summary": "Handover (transferred) por nicolas neves: status=human_takeover, responsável=nicolas neves, aiPaused=true."
+    },
+    {
+      "id": "walog_1794560793841_5812",
+      "timestamp": "2026-11-13T09:06:33.841Z",
+      "source": "php_bridge",
+      "level": "info",
+      "eventType": "duplicate_wamid_skipped",
+      "wamid": "wamid.test_1794560793826_2",
+      "summary": "Evento duplicado ignorado por idempotência (wamid: wamid.test_1794560793826_2)."
+    },
+    {
+      "id": "walog_1794560793832_4502",
+      "timestamp": "2026-11-13T09:06:33.832Z",
+      "source": "php_bridge",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_1794560793737_542",
+      "wamid": "wamid.test_1794560793826_2",
+      "summary": "Mensagem recebida de +5511999990001 salva (ai_active)."
+    },
+    {
+      "id": "walog_1794560793797_7331",
+      "timestamp": "2026-11-13T09:06:33.797Z",
+      "source": "security",
+      "level": "error",
+      "eventType": "bridge_hmac_rejected",
+      "httpStatus": 401,
+      "summary": "Bridge PHP rejeitado: Requisição duplicada detectada (proteção anti-replay: nonce já utilizado)."
+    },
+    {
+      "id": "walog_1794560793740_9549",
+      "timestamp": "2026-11-13T09:06:33.740Z",
+      "source": "php_bridge",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_1794560793737_542",
+      "wamid": "wamid.test_1794560793718_1",
+      "summary": "Mensagem recebida de +5511999990001 salva (ai_active)."
+    },
+    {
+      "id": "walog_1794560793726_1242",
+      "timestamp": "2026-11-13T09:06:33.726Z",
+      "source": "security",
+      "level": "error",
+      "eventType": "bridge_hmac_rejected",
+      "httpStatus": 401,
+      "summary": "Bridge PHP rejeitado: Assinatura HMAC X-FMWS-Signature inválida."
+    },
+    {
+      "id": "walog_1794560793715_1239",
+      "timestamp": "2026-11-13T09:06:33.715Z",
+      "source": "security",
+      "level": "info",
+      "eventType": "bridge_secret_generated",
+      "summary": "Novo Bridge Secret HMAC-SHA256 gerado no backend (exibido uma única vez para copiar para o whatsapp.php)."
+    }
+  ],
+  "proposals": [],
+  "projects": [],
+  "financialTransactions": [],
+  "supportTickets": [],
+  "aiAgents": [
+    {
+      "id": "atendente",
+      "model": "gemini-3.8-flash",
+      "autoReplyThreshold": 85,
+      "rules": [
+        "Respostas objetivas (máximo 2 a 3 parágrafos)",
+        "Nunca prometer entregas antes de 10 dias úteis",
+        "Transferir imediatamente para humano se o cliente solicitar",
+        "Pedir nome e empresa caso o contato não tenha se identificado"
+      ],
+      "role": "Atendente Virtual WhatsApp & Qualificador de Oportunidades",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "personality": "Cordial, consultivo, focado em entender as dores digitais da empresa do cliente e demonstrar autoridade técnica da Fazer Meu Website.",
+      "stats": {
+        "accuracyScore": 0,
+        "tasksCompleted": 8,
+        "leadsHandled": 0,
+        "interactionsToday": 8
+      },
+      "requiresApprovalForOutreach": false,
+      "name": "Atendente IA FMWS",
+      "instructions": "Você é a Atendente IA oficial da Fazer Meu Website (FMWS SALES AI).\nSuas atribuições:\n1. Responder prontamente e com cordialidade clientes que entram em contato pelo WhatsApp.\n2. Identificar a necessidade: novo site, loja virtual, reformulação de site antigo ou hospedagem/manutenção.\n3. Consultar a tabela de preços oficial de serviços.\n4. Qualificar o lead fazendo perguntas objetivas: segmento, se já tem domínio ou logotipo, prazo desejado.\n5. Quando o cliente pedir orçamento formal ou se demonstrar pronto para fechar negócio, oferecer envio de proposta e transferir para atendimento humano.\n6. Se o cliente for cliente ativo com dúvida técnica, registrar o chamado e avisar que o time de suporte responderá em minutos.\n7. Mantenha mensagens curtas e naturais, adequadas ao WhatsApp.",
+      "status": "ativo"
+    },
+    {
+      "rules": [
+        "Exigir aprovação humana antes de qualquer disparo ativo de prospecção",
+        "Validar deduplicação antes de criar novo lead no CRM",
+        "Priorizar empresas sem site ou com erro crítico de SSL",
+        "Respeitar estritamente a LGPD e boas práticas comerciais"
+      ],
+      "autoReplyThreshold": 90,
+      "model": "gemini-3.8-flash",
+      "role": "Inteligência de Mercado & Caçador de Oportunidades Comerciais",
+      "stats": {
+        "accuracyScore": 0,
+        "leadsHandled": 1,
+        "tasksCompleted": 0,
+        "interactionsToday": 1
+      },
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+      "requiresApprovalForOutreach": true,
+      "instructions": "Você é o Prospector IA oficial da Fazer Meu Website.\nSuas atribuições:\n1. Analisar empresas encontradas em buscas de radar (clínicas, escritórios, comércios locais, indústrias).\n2. Avaliar presença digital com base em critérios técnicos reais:\n   - Se a empresa NÃO tem site ou possui apenas rede social.\n   - Se o site não tem certificado SSL ativo (HTTPS).\n   - Se o layout não é responsivo para dispositivos móveis.\n   - Se apresenta lentidão de carregamento.\n3. Produzir diagnóstico resumido de pontos de melhoria e recomendar o plano ideal da FMWS.\n4. Elaborar mensagem de primeiro contato personalizada e respeitosa.\n5. GUARD-RAIL OBRIGATÓRIO: NUNCA disparar mensagem de abordagem fria automaticamente. Todas as abordagens devem ser salvas como 'pendente_aprovacao' no painel para que o gestor revise e aprove antes do envio.",
+      "personality": "Analítico, cirúrgico, focado em dados técnicos objetivos e argumentos comerciais sobre presença digital.",
+      "id": "prospector",
+      "status": "ativo",
+      "name": "Prospector IA FMWS"
+    }
+  ],
+  "integrations": {
+    "metaCloud": {
+      "enabled": true,
+      "phoneNumberId": "333767429829080",
+      "wabaId": "419927517859112",
+      "accessToken": "EAARR1rSvsFQBS5596tOhVCADk4woqPig3UQtAWw60ZA6teBQcl6ZAkZB0rzn7RghNPkMjtogWsbs0sV2eWlvYytNreCzqYZCzdLpr5UTeEFbdiB3jZCENSUN5ZC0pvUl04fleF26RK7WPQVffkpzlBftoPze1IOQvZB3xoZBapAvOlY1ODpM4S7elIna12RwlBhZC5a8OV1FGA4Er",
+      "webhookVerifyToken": "FMWS_TESTE_2026",
+      "status": "desconectado",
+      "webhookUrl": "https://crm.fazermeuwebsite.com.br/api/webhooks/whatsapp.php",
+      "bridgeSecret": "fmws_br_6e783aa379ae815e76425bda2d6661b87ea03ec2839610dc",
+      "lastSyncedAt": "2026-11-13T09:06:34.827Z",
+      "phpWebhookVerified": true,
+      "appSecret": ""
+    },
+    "googlePlaces": {
+      "enabled": true,
+      "apiKey": "AIzaSyBBSVhs0cD-oCwqwPKa3iDbPOH9YTJJD_w",
+      "status": "conectado"
+    },
+    "asaas": {
+      "enabled": false,
+      "apiKey": "",
+      "environment": "sandbox",
+      "webhookSecret": "",
+      "status": "nao_configurado"
+    },
+    "gemini": {
+      "enabled": true,
+      "model": "gemini-3.8-flash",
+      "requestsToday": 12,
+      "quotaLimit": 1500,
+      "status": "conectado"
+    }
+  },
+  "services": [
+    {
+      "basePrice": 35,
+      "description": "Hospedagem linux para site",
+      "category": "recorrente",
+      "isRecurring": true,
+      "billingCycle": "mensal",
+      "id": "srv_custom_1794555410109",
+      "features": [
+        "Contas de E-mail Ilmitadas (10GB Cada)",
+        "Contas Mysql Ilimitadas (1GB Cada)",
+        "SSL Grátis",
+        "SSD NVE"
+      ],
+      "name": "Hospedagem Linux Mensal"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr_admin",
+      "name": "nicolas neves",
+      "email": "fazermeuwebsite@gmail.com",
+      "role": "admin",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKk39Od6aNDePLHJiHOi37CrW_CPz7TADO6N2L170F6NQLf2rM=s96-c",
+      "active": true,
+      "linkedGoogleEmail": "fazermeuwebsite@gmail.com",
+      "createdAt": "2026-11-13T08:47:41.004Z"
+    }
+  ],
+  "sessions": [
+    {
+      "sid": "sess_44acfd009d97e0bec593fe4ddba97377d5eac0bdff855117",
+      "userId": "usr_admin",
+      "role": "admin",
+      "createdAt": "2026-11-13T08:47:41.004Z",
+      "expiresAt": 1795164461004
+    },
+    {
+      "sid": "sess_cf0de5bbc6cc7c3680fadbd775dcd4d1425cd62c356f0de6",
+      "userId": "usr_admin",
+      "role": "admin",
+      "createdAt": "2026-11-13T09:47:17.183Z",
+      "expiresAt": 1795168037183
+    },
+    {
+      "sid": "sess_4c599b8af0b7dae5bc62bdc28cc05f0639c1253beb9c04e1",
+      "userId": "usr_admin",
+      "role": "admin",
+      "createdAt": "2026-11-13T09:47:17.393Z",
+      "expiresAt": 1795168037393
+    }
+  ],
+  "crmStages": [
+    {
+      "order": 0,
+      "label": "Novos Leads",
+      "id": "novo",
+      "color": "slate"
+    },
+    {
+      "id": "qualificacao",
+      "label": "Qualificação",
+      "order": 1,
+      "color": "blue"
+    },
+    {
+      "label": "Apresentação",
+      "order": 2,
+      "id": "apresentacao",
+      "color": "indigo"
+    },
+    {
+      "order": 3,
+      "label": "Proposta Enviada",
+      "id": "proposta",
+      "color": "gold"
+    },
+    {
+      "id": "negociacao",
+      "label": "Negociação",
+      "order": 4,
+      "color": "amber"
+    },
+    {
+      "label": "Fechado / Ganho",
+      "order": 5,
+      "color": "emerald",
+      "id": "ganho"
+    }
+  ],
+  "projectStages": [
+    {
+      "order": 0,
+      "label": "1. Briefing & Escopo",
+      "id": "briefing",
+      "color": "slate"
+    },
+    {
+      "color": "blue",
+      "label": "2. Protótipo Figma",
+      "order": 1,
+      "id": "design_figma"
+    },
+    {
+      "color": "gold",
+      "id": "desenvolvimento",
+      "order": 2,
+      "label": "3. Codificação Web"
+    },
+    {
+      "color": "purple",
+      "id": "revisao_cliente",
+      "order": 3,
+      "label": "4. Revisão do Cliente"
+    },
+    {
+      "label": "5. Lançamento / Go-Live",
+      "order": 4,
+      "id": "publicacao",
+      "color": "emerald"
+    }
+  ],
+  "lastBackup": "2026-11-13T09:50:14.040Z"
+}

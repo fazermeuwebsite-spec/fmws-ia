@@ -1,0 +1,19 @@
+# Proteção Apache para o Webhook PHP FMWS SALES AI (Hospedagem 20i)
+Options -Indexes
+
+# Impede listagem e acesso direto a arquivos sensíveis, logs, fila e configurações
+<FilesMatch "^(config\.php|config\.example\.php|cron_worker\.php|README\.md|.*\.json|.*\.log|.*\.lock)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Bloqueia acesso HTTP direto às subpastas internas (lib, secrets, storage)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(lib|secrets|storage)/ - [F,L]
+</IfModule>

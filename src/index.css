@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-dark: #090B10;
+    --bg-surface: #11141E;
+    --bg-card: #151926;
+    --gold: #D4A72C;
+    --gold-light: #F4C444;
+    --gold-dark: #9E7B1B;
+  }
+}
+
+/* Custom dark gold scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090b10;
+}
+::-webkit-scrollbar-thumb {
+  background: #242b3d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4a72c;
+}
+
+/* Glow effects */
+.gold-glow {
+  box-shadow: 0 0 25px -5px rgba(212, 167, 44, 0.25);
+}
+
+.gold-border-gradient {
+  border-image: linear-gradient(to bottom right, rgba(212, 167, 44, 0.4), rgba(212, 167, 44, 0.05)) 1;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
