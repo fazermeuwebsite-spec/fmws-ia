@@ -156,7 +156,7 @@ final class QueueAndStorage
     public static function maskText(string $text, int $maxLen = 500): string
     {
         // Mascara possíveis tokens/chaves antes de registrar logs
-        $clean = preg_replace('/(Bearer\s+|AIza|EAAG|EAA)[A-Za-z0-9_\-\.]{8,}/', '$1***MASKED***', $text) ?? $text;
+        $clean = preg_replace('/(Bearer\s+|AIza|EAAG|EAA|sk-)[A-Za-z0-9_\-\.]{8,}/', '$1***MASKED***', $text) ?? $text;
         return mb_substr($clean, 0, $maxLen);
     }
 
@@ -421,7 +421,7 @@ final class QueueAndStorage
                 @fclose($dailyFp);
                 return [
                     'allowed' => false,
-                    'reason' => 'Limite diário global de chamadas Gemini no PHP atingido (' . FMWS_AI_MAX_PER_DAY . ').'
+                    'reason' => 'Limite diário global de chamadas IA no PHP atingido (' . FMWS_AI_MAX_PER_DAY . ').'
                 ];
             }
         }

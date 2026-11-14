@@ -24,7 +24,9 @@ import {
   Check,
   Globe,
   Lock,
-  Activity
+  Activity,
+  Cpu,
+  Clock
 } from 'lucide-react';
 import { api } from '../services/api';
 import {
@@ -58,7 +60,7 @@ interface SettingsModuleProps {
   onUpdateUser: (id: string, payload: Partial<User> & { password?: string }) => Promise<void>;
   onDeleteUser: (id: string) => Promise<void>;
   onCloudRestored?: () => Promise<void>;
-  initialTab?: 'integrations' | 'gemini' | 'places' | 'services' | 'users';
+  initialTab?: 'integrations' | 'gemini' | 'deepseek' | 'places' | 'services' | 'users';
   firebaseWorkspaceId?: string;
   firestoreWhatsAppLogs?: WhatsAppIntegrationLog[];
 }
@@ -69,6 +71,7 @@ const STATUS_BADGE: Record<string, string> = {
   desconectado: 'bg-slate-800 text-slate-400 border border-slate-700',
   sandbox: 'bg-sky-500/20 text-sky-300 border border-sky-500/30',
   limite_atingido: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+  sem_saldo: 'bg-orange-500/20 text-orange-300 border border-orange-500/30',
   erro: 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
 };
 
@@ -78,6 +81,7 @@ const STATUS_LABEL: Record<string, string> = {
   desconectado: 'Desconectado',
   sandbox: 'Sandbox',
   limite_atingido: 'Limite atingido',
+  sem_saldo: 'Sem saldo',
   erro: 'Erro'
 };
 
@@ -98,7 +102,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   firebaseWorkspaceId = '',
   firestoreWhatsAppLogs = []
 }) => {
-  const [activeTab, setActiveTab] = useState<'integrations' | 'gemini' | 'places' | 'services' | 'users'>(
+  const [activeTab, setActiveTab] = useState<'integrations' | 'gemini' | 'deepseek' | 'places' | 'services' | 'users'>(
     initialTab || 'integrations'
   );
 
@@ -107,6 +111,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       setActiveTab(initialTab);
     }
   }, [initialTab]);
+
+  const dirtySectionsRef = React.useRef({
+    meta: false,
+    places: false,
+    asaas: false,
+    gemini: false,
+    deepseek: false
+  });
 
   // Non-secret integration fields
   const [metaEnabled, setMetaEnabled] = useState(integrations.metaCloud.enabled);
@@ -123,9 +135,28 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [geminiEnabled, setGeminiEnabled] = useState(integrations.gemini.enabled);
   const [geminiModel, setGeminiModel] = useState(integrations.gemini.model || 'gemini-4-hydrogen');
   const [geminiQuotaLimit, setGeminiQuotaLimit] = useState(String(integrations.gemini.quotaLimit || 1500));
-  const [syncAgentsModel, setSyncAgentsModel] = useState(true);
+  const [syncAgentsModel, setSyncAgentsModel] = useState(false);
   const [testingGemini, setTestingGemini] = useState(false);
   const [geminiLastLatencyMs, setGeminiLastLatencyMs] = useState<number | null>(null);
+
+  // DeepSeek API state
+  const [deepseekEnabled, setDeepseekEnabled] = useState(Boolean(integrations.deepseek?.enabled));
+  const [deepseekBaseUrl, setDeepseekBaseUrl] = useState(integrations.deepseek?.baseUrl || 'https://api.deepseek.com');
+  const [deepseekModel, setDeepseekModel] = useState(integrations.deepseek?.model || 'deepseek-flash');
+  const [deepseekQuotaLimit, setDeepseekQuotaLimit] = useState(String(integrations.deepseek?.quotaLimit || 1500));
+  const [deepseekTimeoutMs, setDeepseekTimeoutMs] = useState(String(integrations.deepseek?.timeoutMs || 25000));
+  const [deepseekMaxTokens, setDeepseekMaxTokens] = useState(String(integrations.deepseek?.maxTokens || 1200));
+  const [deepseekAvailableModels, setDeepseekAvailableModels] = useState<string[]>(
+    integrations.deepseek?.availableModels?.length
+      ? integrations.deepseek.availableModels
+      : ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner']
+  );
+  const [deepseekApiKeyDraft, setDeepseekApiKeyDraft] = useState('');
+  const [showDeepseekKey, setShowDeepseekKey] = useState(false);
+  const [syncDeepSeekAgentsModel, setSyncDeepSeekAgentsModel] = useState(false);
+  const [testingDeepSeek, setTestingDeepSeek] = useState(false);
+  const [loadingDeepSeekModels, setLoadingDeepSeekModels] = useState(false);
+  const [deepseekLastLatencyMs, setDeepseekLastLatencyMs] = useState<number | null>(null);
 
   // Ephemeral secret input drafts (never pre-populated from server!)
   const [metaAccessTokenDraft, setMetaAccessTokenDraft] = useState('');
@@ -142,15 +173,34 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    setMetaEnabled(integrations.metaCloud.enabled);
-    setPhoneNumberId(integrations.metaCloud.phoneNumberId);
-    setWabaId(integrations.metaCloud.wabaId);
-    setPlacesEnabled(integrations.googlePlaces.enabled);
-    setAsaasEnabled(integrations.asaas.enabled);
-    setAsaasEnv(integrations.asaas.environment);
-    setGeminiEnabled(integrations.gemini.enabled);
-    setGeminiModel(integrations.gemini.model || 'gemini-4-hydrogen');
-    setGeminiQuotaLimit(String(integrations.gemini.quotaLimit || 1500));
+    if (!dirtySectionsRef.current.meta) {
+      setMetaEnabled(integrations.metaCloud.enabled);
+      setPhoneNumberId(integrations.metaCloud.phoneNumberId);
+      setWabaId(integrations.metaCloud.wabaId);
+    }
+    if (!dirtySectionsRef.current.places) {
+      setPlacesEnabled(integrations.googlePlaces.enabled);
+    }
+    if (!dirtySectionsRef.current.asaas) {
+      setAsaasEnabled(integrations.asaas.enabled);
+      setAsaasEnv(integrations.asaas.environment);
+    }
+    if (!dirtySectionsRef.current.gemini) {
+      setGeminiEnabled(integrations.gemini.enabled);
+      setGeminiModel(integrations.gemini.model || 'gemini-4-hydrogen');
+      setGeminiQuotaLimit(String(integrations.gemini.quotaLimit || 1500));
+    }
+    if (!dirtySectionsRef.current.deepseek && integrations.deepseek) {
+      setDeepseekEnabled(Boolean(integrations.deepseek.enabled));
+      setDeepseekBaseUrl(integrations.deepseek.baseUrl || 'https://api.deepseek.com');
+      setDeepseekModel(integrations.deepseek.model || 'deepseek-flash');
+      setDeepseekQuotaLimit(String(integrations.deepseek.quotaLimit || 1500));
+      setDeepseekTimeoutMs(String(integrations.deepseek.timeoutMs || 25000));
+      setDeepseekMaxTokens(String(integrations.deepseek.maxTokens || 1200));
+      if (Array.isArray(integrations.deepseek.availableModels) && integrations.deepseek.availableModels.length > 0) {
+        setDeepseekAvailableModels(integrations.deepseek.availableModels);
+      }
+    }
   }, [integrations]);
 
   // Service form state
@@ -269,9 +319,20 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           model: geminiModel,
           quotaLimit: Math.max(10, parseInt(geminiQuotaLimit, 10) || 1500),
           syncAgents: syncAgentsModel
+        },
+        deepseek: {
+          enabled: deepseekEnabled,
+          baseUrl: deepseekBaseUrl.trim() || 'https://api.deepseek.com',
+          model: deepseekModel.trim() || 'deepseek-flash',
+          quotaLimit: Math.max(10, parseInt(deepseekQuotaLimit, 10) || 1500),
+          timeoutMs: Math.max(2000, parseInt(deepseekTimeoutMs, 10) || 25000),
+          maxTokens: Math.max(64, parseInt(deepseekMaxTokens, 10) || 1200),
+          ...(deepseekApiKeyDraft.trim() ? { apiKey: deepseekApiKeyDraft.trim() } : {}),
+          syncAgents: syncDeepSeekAgentsModel
         }
       };
 
+      dirtySectionsRef.current = { meta: false, places: false, asaas: false, gemini: false, deepseek: false };
       await onUpdateIntegrations(payload);
       setMetaAccessTokenDraft('');
       setMetaVerifyTokenDraft('');
@@ -280,6 +341,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       setPlacesApiKeyDraft('');
       setAsaasApiKeyDraft('');
       setAsaasWebhookSecretDraft('');
+      setDeepseekApiKeyDraft('');
       setFeedback({
         type: 'success',
         text: 'Configurações salvas no servidor. Nenhuma credencial sensível é exposta ao navegador.'
@@ -291,18 +353,24 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     }
   };
 
-  const handleClearSecret = async (section: 'metaCloud' | 'googlePlaces' | 'asaas', field: string) => {
+  const handleClearSecret = async (section: 'metaCloud' | 'googlePlaces' | 'asaas' | 'deepseek', field: string) => {
     setFeedback(null);
     try {
       await onUpdateIntegrations({
         [section]: {
           [field]: '__CLEAR__',
-          ...(section === 'googlePlaces' ? { enabled: false } : {})
+          ...(section === 'googlePlaces' || section === 'deepseek' ? { enabled: false } : {})
         }
       });
       if (section === 'googlePlaces') {
+        dirtySectionsRef.current.places = false;
         setPlacesApiKeyDraft('');
         setPlacesEnabled(false);
+      }
+      if (section === 'deepseek') {
+        dirtySectionsRef.current.deepseek = false;
+        setDeepseekApiKeyDraft('');
+        setDeepseekEnabled(false);
       }
       if (field === 'bridgeSecret') {
         setGeneratedBridgeSecretOnce(null);
@@ -363,6 +431,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     setMetaWebhookDiag(null);
     setSavingIntegrations(true);
     try {
+      dirtySectionsRef.current.meta = false;
       await onUpdateIntegrations({
         metaCloud: {
           enabled: metaEnabled,
@@ -404,6 +473,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       setMetaAccessTokenDraft('');
       setMetaVerifyTokenDraft('');
       setMetaAppSecretDraft('');
+      dirtySectionsRef.current.meta = false;
       setMetaApiDiag({
         phoneOk: res.phoneOk,
         phoneInfo: res.phoneInfo,
@@ -484,6 +554,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     setFeedback(null);
     setSavingIntegrations(true);
     try {
+      dirtySectionsRef.current.places = false;
       await onUpdateIntegrations({
         googlePlaces: {
           enabled: placesEnabled,
@@ -506,6 +577,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     setFeedback(null);
     setTestingPlaces(true);
     try {
+      dirtySectionsRef.current.places = false;
       const res = await api.testGooglePlaces(placesApiKeyDraft.trim() || undefined);
       if (res.integrations) {
         await onIntegrationsUpdated?.(res.integrations);
@@ -533,6 +605,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     setFeedback(null);
     setSavingIntegrations(true);
     try {
+      dirtySectionsRef.current.gemini = false;
       await onUpdateIntegrations({
         gemini: {
           enabled: geminiEnabled,
@@ -543,7 +616,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       });
       setFeedback({
         type: 'success',
-        text: `Configurações da API Gemini salvas (${geminiModel})${syncAgentsModel ? ' e aplicadas aos agentes de IA' : ''}.`
+        text: `Configurações da API Gemini salvas (${geminiModel})${syncAgentsModel ? ' e aplicadas aos agentes Gemini' : ''}.`
       });
     } catch (err: any) {
       setFeedback({ type: 'error', text: err.message || 'Erro ao salvar configurações da API Gemini.' });
@@ -577,6 +650,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     setFeedback(null);
     setTestingGemini(true);
     try {
+      dirtySectionsRef.current.gemini = false;
       const res = await api.testGemini(geminiModel);
       if (res.integrations) {
         await onIntegrationsUpdated?.(res.integrations);
@@ -599,6 +673,168 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       });
     } finally {
       setTestingGemini(false);
+    }
+  };
+
+  const handleSaveDeepSeekApiKeyOnly = async () => {
+    const trimmedKey = deepseekApiKeyDraft.trim();
+    if (!trimmedKey) {
+      setFeedback({ type: 'error', text: 'Digite uma DeepSeek API Key válida antes de salvar.' });
+      return;
+    }
+    setFeedback(null);
+    setSavingIntegrations(true);
+    try {
+      dirtySectionsRef.current.deepseek = false;
+      await onUpdateIntegrations({
+        deepseek: {
+          apiKey: trimmedKey,
+          baseUrl: deepseekBaseUrl.trim() || 'https://api.deepseek.com',
+          enabled: deepseekEnabled || true
+        }
+      });
+      setDeepseekApiKeyDraft('');
+      setDeepseekEnabled(true);
+      setFeedback({
+        type: 'success',
+        text: 'DeepSeek API Key criptografada e salva com segurança no servidor! Agora clique em "Testar Conexão" ou "Atualizar Modelos".'
+      });
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Erro ao salvar DeepSeek API Key.' });
+    } finally {
+      setSavingIntegrations(false);
+    }
+  };
+
+  const handleSaveDeepSeekOnly = async () => {
+    setFeedback(null);
+    setSavingIntegrations(true);
+    try {
+      dirtySectionsRef.current.deepseek = false;
+      await onUpdateIntegrations({
+        deepseek: {
+          enabled: deepseekEnabled,
+          baseUrl: deepseekBaseUrl.trim() || 'https://api.deepseek.com',
+          model: deepseekModel.trim() || 'deepseek-flash',
+          quotaLimit: Math.max(10, parseInt(deepseekQuotaLimit, 10) || 1500),
+          timeoutMs: Math.max(2000, parseInt(deepseekTimeoutMs, 10) || 25000),
+          maxTokens: Math.max(64, parseInt(deepseekMaxTokens, 10) || 1200),
+          ...(deepseekApiKeyDraft.trim() ? { apiKey: deepseekApiKeyDraft.trim() } : {}),
+          syncAgents: syncDeepSeekAgentsModel
+        }
+      });
+      setDeepseekApiKeyDraft('');
+      setFeedback({
+        type: 'success',
+        text: `Configurações da API DeepSeek salvas no servidor (${deepseekModel})${syncDeepSeekAgentsModel ? ' e aplicadas aos agentes DeepSeek' : ''}.`
+      });
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Erro ao salvar configurações da API DeepSeek.' });
+    } finally {
+      setSavingIntegrations(false);
+    }
+  };
+
+  const handleRefreshDeepSeekModels = async () => {
+    setFeedback(null);
+    setLoadingDeepSeekModels(true);
+    try {
+      const res = await api.fetchDeepSeekModels({
+        apiKey: deepseekApiKeyDraft.trim() || undefined,
+        baseUrl: deepseekBaseUrl.trim() || 'https://api.deepseek.com'
+      });
+      if (Array.isArray(res.models) && res.models.length > 0) {
+        setDeepseekAvailableModels(res.models);
+        if (!res.models.includes(deepseekModel)) {
+          setDeepseekModel(res.models[0]);
+        }
+      }
+      if (res.integrations) {
+        await onIntegrationsUpdated?.(res.integrations);
+      }
+      if (res.ok) {
+        setFeedback({
+          type: 'success',
+          text: `Catálogo atualizado via GET /models (${res.liveModels.length} modelo(s) retornado(s) pela API + opções iniciais).`
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          text: res.error || 'Não foi possível consultar GET /models dinamicamente. Opções padrão mantidas.'
+        });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Erro ao carregar modelos DeepSeek.' });
+    } finally {
+      setLoadingDeepSeekModels(false);
+    }
+  };
+
+  const handleResetDeepSeekCounter = async () => {
+    setFeedback(null);
+    setSavingIntegrations(true);
+    try {
+      await onUpdateIntegrations({
+        deepseek: {
+          requestsToday: 0,
+          tokensUsedToday: 0,
+          status: deepseekEnabled && integrations.deepseek?.hasApiKey ? 'conectado' : 'desconectado'
+        }
+      });
+      setFeedback({
+        type: 'success',
+        text: 'Contadores diários de requisições e tokens da DeepSeek zerados com sucesso.'
+      });
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Erro ao zerar contadores da DeepSeek.' });
+    } finally {
+      setSavingIntegrations(false);
+    }
+  };
+
+  const handleTestDeepSeek = async () => {
+    setFeedback(null);
+    setTestingDeepSeek(true);
+    try {
+      dirtySectionsRef.current.deepseek = false;
+      const res = await api.testDeepSeek({
+        apiKey: deepseekApiKeyDraft.trim() || undefined,
+        baseUrl: deepseekBaseUrl.trim() || 'https://api.deepseek.com',
+        model: deepseekModel.trim() || 'deepseek-flash',
+        timeoutMs: Math.max(2000, parseInt(deepseekTimeoutMs, 10) || 25000),
+        maxTokens: Math.max(64, parseInt(deepseekMaxTokens, 10) || 1200),
+        quotaLimit: Math.max(10, parseInt(deepseekQuotaLimit, 10) || 1500),
+        enabled: true,
+        saveCredentials: true
+      });
+      setDeepseekApiKeyDraft('');
+      if (Array.isArray(res.models) && res.models.length > 0) {
+        setDeepseekAvailableModels(res.models);
+      }
+      if (res.integrations) {
+        await onIntegrationsUpdated?.(res.integrations);
+      }
+      if (typeof res.latencyMs === 'number') {
+        setDeepseekLastLatencyMs(res.latencyMs);
+      }
+      setDeepseekEnabled(true);
+      setFeedback({
+        type: 'success',
+        text: res.message || `API DeepSeek (${deepseekModel}) validada e conectada com sucesso!`
+      });
+    } catch (err: any) {
+      try {
+        const latest = await api.getIntegrations();
+        await onIntegrationsUpdated?.(latest);
+      } catch {
+        // ignore refresh error
+      }
+      setFeedback({
+        type: 'error',
+        text: err?.message || 'Não foi possível validar a conexão com a API DeepSeek.'
+      });
+    } finally {
+      setTestingDeepSeek(false);
     }
   };
 
@@ -798,6 +1034,18 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         </button>
         <button
           type="button"
+          onClick={() => { setActiveTab('deepseek'); setFeedback(null); }}
+          className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'deepseek'
+              ? 'bg-[#D4A72C] text-slate-950 font-bold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Cpu size={13} />
+          <span>DeepSeek API</span>
+        </button>
+        <button
+          type="button"
           onClick={() => { setActiveTab('places'); setFeedback(null); }}
           className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
             activeTab === 'places'
@@ -872,7 +1120,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   <input
                     type="checkbox"
                     checked={metaEnabled}
-                    onChange={(e) => setMetaEnabled(e.target.checked)}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.meta = true;
+                      setMetaEnabled(e.target.checked);
+                    }}
                     className="accent-[#D4A72C]"
                   />
                   <span>Ativar</span>
@@ -901,7 +1152,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 <input
                   type="text"
                   value={phoneNumberId}
-                  onChange={(e) => setPhoneNumberId(e.target.value)}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.meta = true;
+                    setPhoneNumberId(e.target.value);
+                  }}
                   placeholder="ID do número no Meta Business"
                   className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white font-mono"
                 />
@@ -912,7 +1166,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 <input
                   type="text"
                   value={wabaId}
-                  onChange={(e) => setWabaId(e.target.value)}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.meta = true;
+                    setWabaId(e.target.value);
+                  }}
                   placeholder="WhatsApp Business Account ID"
                   className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white font-mono"
                 />
@@ -1372,7 +1629,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   <input
                     type="checkbox"
                     checked={placesEnabled}
-                    onChange={(e) => setPlacesEnabled(e.target.checked)}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.places = true;
+                      setPlacesEnabled(e.target.checked);
+                    }}
                     className="accent-[#D4A72C]"
                   />
                   <span>Ativar</span>
@@ -1464,7 +1724,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   <input
                     type="checkbox"
                     checked={asaasEnabled}
-                    onChange={(e) => setAsaasEnabled(e.target.checked)}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.asaas = true;
+                      setAsaasEnabled(e.target.checked);
+                    }}
                     className="accent-[#D4A72C]"
                   />
                   <span>Ativar</span>
@@ -1532,7 +1795,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 <label className="block text-slate-400 font-semibold mb-1">Ambiente de Operação</label>
                 <select
                   value={asaasEnv}
-                  onChange={(e) => setAsaasEnv(e.target.value as 'sandbox' | 'producao')}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.asaas = true;
+                    setAsaasEnv(e.target.value as 'sandbox' | 'producao');
+                  }}
                   className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white"
                 >
                   <option value="sandbox">Sandbox (Testes)</option>
@@ -1561,7 +1827,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   <input
                     type="checkbox"
                     checked={geminiEnabled}
-                    onChange={(e) => setGeminiEnabled(e.target.checked)}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.gemini = true;
+                      setGeminiEnabled(e.target.checked);
+                    }}
                     className="accent-[#D4A72C]"
                   />
                   <span>Ativar</span>
@@ -1577,7 +1846,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 <label className="block text-slate-400 font-semibold mb-1">Modelo Gemini Padrão</label>
                 <select
                   value={geminiModel}
-                  onChange={(e) => setGeminiModel(e.target.value)}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.gemini = true;
+                    setGeminiModel(e.target.value);
+                  }}
                   className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white font-mono"
                 >
                   <option value="gemini-4-hydrogen">gemini-4-hydrogen (Padrão Recomendado)</option>
@@ -1593,7 +1865,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   min={10}
                   max={100000}
                   value={geminiQuotaLimit}
-                  onChange={(e) => setGeminiQuotaLimit(e.target.value)}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.gemini = true;
+                    setGeminiQuotaLimit(e.target.value);
+                  }}
                   className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white font-mono"
                 />
               </div>
@@ -1635,6 +1910,140 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 className="px-3.5 py-1.5 rounded-lg bg-[#D4A72C]/15 border border-[#D4A72C]/40 text-[#D4A72C] hover:bg-[#D4A72C] hover:text-slate-950 text-xs font-bold cursor-pointer transition-colors"
               >
                 Configuração Completa Gemini
+              </button>
+            </div>
+          </div>
+
+          {/* DeepSeek AI Summary Card */}
+          <div className="p-5 rounded-xl bg-[#11141E] border border-slate-800 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#D4A72C]/10 text-[#D4A72C] flex items-center justify-center">
+                  <Cpu size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">DeepSeek API — Inteligência Artificial Alternativa</h3>
+                  <p className="text-xs text-slate-400">
+                    Chave armazenada criptografada exclusivamente no servidor (<code className="text-slate-300">enc:v1</code>), selecionável por agente autônomo
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={deepseekEnabled}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.deepseek = true;
+                      setDeepseekEnabled(e.target.checked);
+                    }}
+                    className="accent-[#D4A72C]"
+                  />
+                  <span>Ativar</span>
+                </label>
+                <span className={`text-[10px] px-2.5 py-0.5 rounded font-bold uppercase ${STATUS_BADGE[integrations.deepseek?.status || 'nao_configurado'] || STATUS_BADGE.nao_configurado}`}>
+                  {STATUS_LABEL[integrations.deepseek?.status || 'nao_configurado'] || integrations.deepseek?.status || 'Não configurado'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-slate-400 font-semibold">DeepSeek API Key</label>
+                  {integrations.deepseek?.hasApiKey && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearSecret('deepseek', 'apiKey')}
+                      className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                    >
+                      Remover chave
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showDeepseekKey ? 'text' : 'password'}
+                    value={deepseekApiKeyDraft}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.deepseek = true;
+                      setDeepseekApiKeyDraft(e.target.value);
+                    }}
+                    placeholder={
+                      integrations.deepseek?.hasApiKey
+                        ? `Chave salva (${integrations.deepseek.apiKeyHint || '••••'}) — digite para substituir`
+                        : 'sk-... (salva apenas no servidor)'
+                    }
+                    className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 pr-9 text-white font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDeepseekKey(!showDeepseekKey)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    {showDeepseekKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-semibold mb-1">Modelo DeepSeek Padrão</label>
+                <select
+                  value={deepseekModel}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.deepseek = true;
+                    setDeepseekModel(e.target.value);
+                  }}
+                  className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white font-mono"
+                >
+                  {deepseekAvailableModels.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-semibold mb-1">Base URL</label>
+                <input
+                  type="url"
+                  value={deepseekBaseUrl}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.deepseek = true;
+                    setDeepseekBaseUrl(e.target.value);
+                  }}
+                  placeholder="https://api.deepseek.com"
+                  className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2">
+              <span>
+                Uso hoje: <strong className="font-mono text-white">{integrations.deepseek?.requestsToday ?? 0} / {integrations.deepseek?.quotaLimit ?? 1500} req</strong>
+              </span>
+              <span>
+                Tokens consumidos hoje: <strong className="font-mono text-[#D4A72C]">{(integrations.deepseek?.tokensUsedToday ?? 0).toLocaleString('pt-BR')} tokens</strong>
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleTestDeepSeek}
+                disabled={testingDeepSeek}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              >
+                <RefreshCw size={12} className={testingDeepSeek ? 'animate-spin text-[#D4A72C]' : 'text-[#D4A72C]'} />
+                <span>{testingDeepSeek ? 'Testando DeepSeek...' : 'Testar Conexão DeepSeek'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('deepseek'); setFeedback(null); }}
+                className="px-3.5 py-1.5 rounded-lg bg-[#D4A72C]/15 border border-[#D4A72C]/40 text-[#D4A72C] hover:bg-[#D4A72C] hover:text-slate-950 text-xs font-bold cursor-pointer transition-colors"
+              >
+                Configuração Completa DeepSeek
               </button>
             </div>
           </div>
@@ -1733,7 +2142,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 <input
                   type="checkbox"
                   checked={geminiEnabled}
-                  onChange={(e) => setGeminiEnabled(e.target.checked)}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.gemini = true;
+                    setGeminiEnabled(e.target.checked);
+                  }}
                   className="accent-[#D4A72C] w-4 h-4"
                 />
                 <span>{geminiEnabled ? 'Habilitado' : 'Desativado'}</span>
@@ -1746,7 +2158,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 <label className="block text-slate-300 font-semibold">Modelo Padrão do Gemini</label>
                 <select
                   value={geminiModel}
-                  onChange={(e) => setGeminiModel(e.target.value)}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.gemini = true;
+                    setGeminiModel(e.target.value);
+                  }}
                   className="w-full bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
                 >
                   <option value="gemini-4-hydrogen">gemini-4-hydrogen (Padrão Recomendado)</option>
@@ -1760,7 +2175,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     onChange={(e) => setSyncAgentsModel(e.target.checked)}
                     className="accent-[#D4A72C]"
                   />
-                  <span>Aplicar automaticamente este modelo ao Atendente IA e Prospector IA</span>
+                  <span>Aplicar automaticamente este modelo aos agentes que usam Gemini</span>
                 </label>
               </div>
 
@@ -1772,7 +2187,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     min={10}
                     max={100000}
                     value={geminiQuotaLimit}
-                    onChange={(e) => setGeminiQuotaLimit(e.target.value)}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.gemini = true;
+                      setGeminiQuotaLimit(e.target.value);
+                    }}
                     className="flex-1 bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
                   />
                   <button
@@ -1855,6 +2273,370 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         </div>
       )}
 
+      {/* TAB 2B: DEEPSEEK API DEDICATED CONFIG */}
+      {activeTab === 'deepseek' && (
+        <div className="space-y-4">
+          <div className="p-6 rounded-xl bg-[#11141E] border border-slate-800 space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-800 pb-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#D4A72C]/10 border border-[#D4A72C]/30 text-[#D4A72C] flex items-center justify-center shrink-0">
+                  <Cpu size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Configuração da DeepSeek API</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Configure autenticação server-side criptografada, endpoint, modelos dinâmicos via <code className="text-slate-300">GET /models</code>, cota e histórico para uso independente nos agentes autônomos.
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`text-[10px] px-2.5 py-1 rounded font-bold uppercase ${
+                  STATUS_BADGE[integrations.deepseek?.status || 'nao_configurado'] || STATUS_BADGE.nao_configurado
+                }`}
+              >
+                {STATUS_LABEL[integrations.deepseek?.status || 'nao_configurado'] || integrations.deepseek?.status || 'Não configurado'}
+              </span>
+            </div>
+
+            {/* Global Toggle */}
+            <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold text-white">
+                  Ativar chamadas à DeepSeek API no CRM
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  Permite selecionar modelos DeepSeek no Atendente IA e no Prospector IA, além de operar como fallback opcional.
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer select-none px-3 py-1.5 rounded-lg bg-[#151926] border border-slate-700">
+                <input
+                  type="checkbox"
+                  checked={deepseekEnabled}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.deepseek = true;
+                    setDeepseekEnabled(e.target.checked);
+                  }}
+                  className="accent-[#D4A72C] w-4 h-4"
+                />
+                <span>{deepseekEnabled ? 'Habilitado' : 'Desativado'}</span>
+              </label>
+            </div>
+
+            {/* API Key Input + Save API Key + Show/Hide */}
+            <div className="p-4 rounded-xl bg-[#0B0E16] border border-slate-800 space-y-3 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-slate-200 font-semibold flex items-center gap-1.5">
+                  <KeyRound size={14} className="text-[#D4A72C]" />
+                  <span>DeepSeek API Key (armazenamento criptografado exclusivo no servidor)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  {integrations.deepseek?.hasApiKey && (
+                    <span className="text-[11px] text-emerald-400 font-mono">
+                      Chave salva ({integrations.deepseek.apiKeyHint || '••••'})
+                    </span>
+                  )}
+                  {integrations.deepseek?.hasApiKey && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearSecret('deepseek', 'apiKey')}
+                      className="text-[11px] text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 size={12} />
+                      <span>Remover chave salva</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showDeepseekKey ? 'text' : 'password'}
+                    value={deepseekApiKeyDraft}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.deepseek = true;
+                      setDeepseekApiKeyDraft(e.target.value);
+                    }}
+                    placeholder={
+                      integrations.deepseek?.hasApiKey
+                        ? `Chave criptografada ativa (${integrations.deepseek.apiKeyHint || '••••'}) — digite apenas para substituir`
+                        : 'Cole sua DeepSeek API Key (ex: sk-...)'
+                    }
+                    className="w-full bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 pr-10 text-white font-mono text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDeepseekKey(!showDeepseekKey)}
+                    title={showDeepseekKey ? 'Ocultar chave' : 'Mostrar chave'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    {showDeepseekKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveDeepSeekApiKeyOnly}
+                  disabled={savingIntegrations || !deepseekApiKeyDraft.trim()}
+                  className="px-4 py-2.5 rounded-lg bg-[#D4A72C] hover:bg-[#b88e1e] text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 whitespace-nowrap"
+                >
+                  <Lock size={13} />
+                  <span>Salvar API Key</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Por segurança, a chave nunca é devolvida ao navegador ou gravada em texto puro. Ao sincronizar com o Firestore, vai protegida em cofre AES-256-GCM (<code className="text-slate-300">encryptedVault</code>).
+              </p>
+            </div>
+
+            {/* Base URL + Model Dynamic Selector */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="space-y-2">
+                <label className="block text-slate-300 font-semibold">Base URL da API DeepSeek</label>
+                <input
+                  type="url"
+                  value={deepseekBaseUrl}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.deepseek = true;
+                    setDeepseekBaseUrl(e.target.value);
+                  }}
+                  placeholder="https://api.deepseek.com"
+                  className="w-full bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
+                />
+                <p className="text-[11px] text-slate-400">
+                  Padrão oficial: <code className="text-slate-300">https://api.deepseek.com</code> (utilizado para <code className="text-slate-300">GET /models</code> e <code className="text-slate-300">POST /chat/completions</code>).
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-slate-300 font-semibold">Modelo DeepSeek Padrão</label>
+                  <button
+                    type="button"
+                    onClick={handleRefreshDeepSeekModels}
+                    disabled={loadingDeepSeekModels}
+                    className="text-[11px] text-[#D4A72C] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                  >
+                    <RefreshCw size={11} className={loadingDeepSeekModels ? 'animate-spin' : ''} />
+                    <span>{loadingDeepSeekModels ? 'Consultando GET /models...' : 'Atualizar Modelos (GET /models)'}</span>
+                  </button>
+                </div>
+                <select
+                  value={deepseekModel}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.deepseek = true;
+                    setDeepseekModel(e.target.value);
+                  }}
+                  className="w-full bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
+                >
+                  {deepseekAvailableModels.map((m) => (
+                    <option key={m} value={m}>
+                      {m === 'deepseek-flash'
+                        ? 'deepseek-flash (Inicial / Baixa Latência)'
+                        : m === 'deepseek-v4-pro'
+                        ? 'deepseek-v4-pro (Inicial / Alta Capacidade)'
+                        : m}
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={syncDeepSeekAgentsModel}
+                    onChange={(e) => setSyncDeepSeekAgentsModel(e.target.checked)}
+                    className="accent-[#D4A72C]"
+                  />
+                  <span>Aplicar este modelo aos agentes configurados com DeepSeek</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Quota, Timeout & Max Tokens */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-semibold">Limite Diário de Requisições</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={10}
+                    max={100000}
+                    value={deepseekQuotaLimit}
+                    onChange={(e) => {
+                      dirtySectionsRef.current.deepseek = true;
+                      setDeepseekQuotaLimit(e.target.value);
+                    }}
+                    className="flex-1 bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleResetDeepSeekCounter}
+                    disabled={savingIntegrations || ((integrations.deepseek?.requestsToday ?? 0) === 0 && (integrations.deepseek?.tokensUsedToday ?? 0) === 0)}
+                    className="px-3 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold whitespace-nowrap cursor-pointer disabled:opacity-40"
+                  >
+                    Zerar Uso
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-semibold">Timeout da Chamada (ms)</label>
+                <input
+                  type="number"
+                  min={2000}
+                  max={120000}
+                  step={500}
+                  value={deepseekTimeoutMs}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.deepseek = true;
+                    setDeepseekTimeoutMs(e.target.value);
+                  }}
+                  className="w-full bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-semibold">Máximo de Tokens (max_tokens)</label>
+                <input
+                  type="number"
+                  min={64}
+                  max={8192}
+                  step={50}
+                  value={deepseekMaxTokens}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.deepseek = true;
+                    setDeepseekMaxTokens(e.target.value);
+                  }}
+                  className="w-full bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Daily usage & token bar */}
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-slate-300 font-semibold">Consumo registrado hoje (Requisições &amp; Tokens)</span>
+                <div className="flex flex-wrap items-center gap-3 font-mono text-white font-bold">
+                  <span>
+                    {integrations.deepseek?.requestsToday ?? 0} / {integrations.deepseek?.quotaLimit ?? 1500} req
+                  </span>
+                  <span className="text-[#D4A72C]">
+                    {(integrations.deepseek?.tokensUsedToday ?? 0).toLocaleString('pt-BR')} tokens
+                  </span>
+                  {deepseekLastLatencyMs !== null && (
+                    <span className="text-emerald-300">{deepseekLastLatencyMs}ms</span>
+                  )}
+                </div>
+              </div>
+              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-[#D4A72C] h-full transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      ((integrations.deepseek?.requestsToday ?? 0) / Math.max(1, integrations.deepseek?.quotaLimit || 1500)) * 100
+                    )}%`
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleTestDeepSeek}
+                disabled={testingDeepSeek}
+                className="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-xs flex items-center gap-2 cursor-pointer disabled:opacity-40"
+              >
+                <RefreshCw size={14} className={testingDeepSeek ? 'animate-spin text-[#D4A72C]' : 'text-[#D4A72C]'} />
+                <span>{testingDeepSeek ? 'Testando Conexão...' : 'Testar Conexão DeepSeek'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveDeepSeekOnly}
+                disabled={savingIntegrations}
+                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#D4A72C] to-[#B88E1E] text-slate-950 font-bold text-xs hover:brightness-110 transition-all shadow-md shadow-[#D4A72C]/10 cursor-pointer disabled:opacity-50"
+              >
+                {savingIntegrations ? 'Salvando...' : 'Salvar Configurações DeepSeek'}
+              </button>
+            </div>
+
+            {/* Usage, Error & Token History */}
+            <div className="p-4 rounded-xl bg-[#0B0E16] border border-slate-800 space-y-3 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 font-bold text-white">
+                  <Clock size={14} className="text-[#D4A72C]" />
+                  <span>Histórico de Uso, Erros &amp; Consumo de Tokens ({integrations.deepseek?.usageHistory?.length || 0})</span>
+                </div>
+                {integrations.deepseek?.modelsUpdatedAt && (
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    Modelos atualizados: {new Date(integrations.deepseek.modelsUpdatedAt).toLocaleString('pt-BR')}
+                  </span>
+                )}
+              </div>
+
+              {!integrations.deepseek?.usageHistory?.length ? (
+                <div className="text-slate-500 italic text-[11px] py-2">
+                  Nenhuma chamada DeepSeek registrada ainda. Clique em "Testar Conexão DeepSeek" ou execute um agente usando DeepSeek.
+                </div>
+              ) : (
+                <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                  <table className="w-full text-left border-collapse text-[11px]">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400">
+                        <th className="py-1.5 pr-3 font-semibold">Data/Hora</th>
+                        <th className="py-1.5 pr-3 font-semibold">Origem</th>
+                        <th className="py-1.5 pr-3 font-semibold">Modelo</th>
+                        <th className="py-1.5 pr-3 font-semibold">Status</th>
+                        <th className="py-1.5 pr-3 font-semibold">Tokens</th>
+                        <th className="py-1.5 pr-3 font-semibold">Latência</th>
+                        <th className="py-1.5 font-semibold">Detalhe</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900">
+                      {integrations.deepseek.usageHistory.map((log) => (
+                        <tr key={log.id} className="text-slate-300">
+                          <td className="py-1.5 pr-3 font-mono text-slate-400 whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleString('pt-BR')}
+                          </td>
+                          <td className="py-1.5 pr-3 font-mono uppercase text-[10px]">{log.agentId}</td>
+                          <td className="py-1.5 pr-3 font-mono text-white">{log.model}</td>
+                          <td className="py-1.5 pr-3">
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                log.status === 'sucesso'
+                                  ? 'bg-emerald-500/20 text-emerald-300'
+                                  : log.status === 'sem_saldo'
+                                  ? 'bg-orange-500/20 text-orange-300'
+                                  : log.status === 'limite_atingido'
+                                  ? 'bg-amber-500/20 text-amber-300'
+                                  : 'bg-rose-500/20 text-rose-300'
+                              }`}
+                            >
+                              {log.status}{log.httpStatus ? ` (${log.httpStatus})` : ''}
+                            </span>
+                          </td>
+                          <td className="py-1.5 pr-3 font-mono text-[#D4A72C] whitespace-nowrap">
+                            {typeof log.totalTokens === 'number' ? `${log.totalTokens} tok` : '—'}
+                          </td>
+                          <td className="py-1.5 pr-3 font-mono text-slate-400 whitespace-nowrap">
+                            {typeof log.latencyMs === 'number' ? `${log.latencyMs}ms` : '—'}
+                          </td>
+                          <td className="py-1.5 text-slate-400 max-w-xs truncate" title={log.errorSummary || ''}>
+                            {log.errorSummary || 'OK'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TAB 3: GOOGLE PLACES API DEDICATED CONFIG */}
       {activeTab === 'places' && (
         <div className="space-y-4">
@@ -1893,7 +2675,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 <input
                   type="checkbox"
                   checked={placesEnabled}
-                  onChange={(e) => setPlacesEnabled(e.target.checked)}
+                  onChange={(e) => {
+                    dirtySectionsRef.current.places = true;
+                    setPlacesEnabled(e.target.checked);
+                  }}
                   className="accent-[#D4A72C] w-4 h-4"
                 />
                 <span>{placesEnabled ? 'Habilitado' : 'Desativado'}</span>

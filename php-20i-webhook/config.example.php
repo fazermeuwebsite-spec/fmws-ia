@@ -18,16 +18,24 @@ define('META_PHONE_NUMBER_ID', getenv('META_PHONE_NUMBER_ID') ?: 'COLE_AQUI_SEU_
 define('META_ACCESS_TOKEN', getenv('META_ACCESS_TOKEN') ?: 'COLE_AQUI_SEU_TOKEN_PERMANENTE_SYSTEM_USER');
 define('META_GRAPH_VERSION', 'v22.0');
 
-// 2) Google Gemini API (apenas no servidor PHP — para o Atendente IA)
+// 2) Google Gemini API (apenas no servidor PHP — para o Atendente IA quando configurado com Gemini)
 define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: 'COLE_AQUI_SUA_GEMINI_API_KEY');
 define('GEMINI_DEFAULT_MODEL', 'gemini-4-hydrogen');
 define('GEMINI_TIMEOUT_SEC', 20);
+
+// 2B) DeepSeek API (opcional: deixe 'COLE_AQUI_...' para usar automaticamente a chave criptografada salva no CRM via Firestore Vault)
+define('DEEPSEEK_API_KEY', getenv('DEEPSEEK_API_KEY') ?: 'COLE_AQUI_SUA_DEEPSEEK_API_KEY');
+define('DEEPSEEK_BASE_URL', getenv('DEEPSEEK_BASE_URL') ?: 'https://api.deepseek.com');
+define('DEEPSEEK_DEFAULT_MODEL', 'deepseek-flash');
+define('DEEPSEEK_TIMEOUT_SEC', 25);
+define('DEEPSEEK_MAX_TOKENS', 1200);
 
 // 3) Firebase Firestore (mesmo projeto e banco do CRM — sem Cloud Run e sem faturamento)
 // Copie estes valores em Configurações > Integrações > WhatsApp Cloud API no painel FMWS SALES AI
 define('FIREBASE_PROJECT_ID', getenv('FIREBASE_PROJECT_ID') ?: 'gen-lang-client-0335571545');
 define('FIREBASE_DATABASE_ID', getenv('FIREBASE_DATABASE_ID') ?: 'ai-studio-fmwssalesai-76b5f5f7-00d8-4765-ba38-022e322e6811');
 define('FIREBASE_WORKSPACE_ID', getenv('FIREBASE_WORKSPACE_ID') ?: 'COLE_AQUI_SEU_FIREBASE_WORKSPACE_ID');
+define('FMWS_VAULT_APP_ID', getenv('FMWS_VAULT_APP_ID') ?: '1:1007158864919:web:bd856b3d8eb53759848052');
 
 // Caminho do arquivo JSON da Conta de Serviço Google (permissão Firebase / Cloud Datastore User)
 // Recomenda-se guardar dentro de `secrets/firebase-service-account.json` protegido por .htaccess

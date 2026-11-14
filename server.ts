@@ -4,7 +4,17 @@ import path from 'path';
 import fs from 'fs';
 import http from 'http';
 import { storage } from './src/server/storage';
-import { generateAtendenteResponse, runProspectorAudit, performRealWebsiteCheck, testAgentConnection, testGeminiIntegration } from './src/server/aiService';
+import {
+  GEMINI_AVAILABLE_MODELS,
+  DEEPSEEK_INITIAL_MODELS,
+  fetchDeepSeekModels,
+  generateAtendenteResponse,
+  runProspectorAudit,
+  performRealWebsiteCheck,
+  testAgentConnection,
+  testDeepSeekIntegration,
+  testGeminiIntegration
+} from './src/server/aiService';
 import {
   AuthenticatedRequest,
   ROLE_PERMISSIONS,
@@ -1491,6 +1501,12 @@ app.post('/api/prospects/:id/audit', requireRole('admin', 'comercial'), async (r
     res.json({
       prospect: updated,
       geminiUsed: auditRes.geminiUsed,
+      aiUsed: auditRes.aiUsed,
+      providerUsed: auditRes.providerUsed,
+      modelUsed: auditRes.modelUsed,
+      fallbackUsed: auditRes.fallbackUsed,
+      latencyMs: auditRes.latencyMs,
+      totalTokens: auditRes.totalTokens,
       warning: auditRes.warning
     });
   } catch (err: any) {
@@ -2532,12 +2548,44 @@ app.put('/api/agents/:id', requireRole('admin'), (req: AuthenticatedRequest, res
   const agent = storage.getAIAgents().find((a) => a.id === req.params.id);
   if (!agent) return res.status(404).json({ error: 'Agente não encontrado.' });
 
+  const nextProvider =
+    req.body?.provider === 'deepseek' || req.body?.provider === 'gemini'
+      ? req.body.provider
+      : agent.provider || 'gemini';
+
+  const nextFallbackEnabled =
+    req.body?.fallbackEnabled !== undefined
+      ? Boolean(req.body.fallbackEnabled)
+      : Boolean(agent.fallbackEnabled);
+
+  const defaultSecondary = nextProvider === 'deepseek' ? 'gemini' : 'deepseek';
+  const nextFallbackProvider =
+    req.body?.fallbackProvider === 'deepseek' || req.body?.fallbackProvider === 'gemini'
+      ? req.body.fallbackProvider
+      : agent.fallbackProvider || defaultSecondary;
+
   const requestedStatus = req.body?.status ?? agent.status;
   const integrations = storage.getIntegrations();
-  if (requestedStatus === 'ativo' && !integrations.gemini.enabled) {
-    return res.status(400).json({
-      error: 'Não é possível ativar o agente sem uma GEMINI_API_KEY configurada no servidor.'
-    });
+  if (requestedStatus === 'ativo') {
+    if (nextProvider === 'deepseek') {
+      const hasDsKey = Boolean(storage.getEffectiveDeepSeekKey());
+      if (!hasDsKey) {
+        return res.status(400).json({
+          error: 'Não é possível ativar o agente com DeepSeek sem uma DeepSeek API Key configurada no servidor.'
+        });
+      }
+      if (!integrations.deepseek?.enabled) {
+        return res.status(400).json({
+          error: 'Ative a integração DeepSeek API em Configurações > DeepSeek API antes de ativar o agente.'
+        });
+      }
+    } else {
+      if (!integrations.gemini.enabled) {
+        return res.status(400).json({
+          error: 'Não é possível ativar o agente com Gemini sem uma GEMINI_API_KEY ativa e habilitada no servidor.'
+        });
+      }
+    }
   }
 
   const sanitizedRules = Array.isArray(req.body?.rules)
@@ -2549,11 +2597,25 @@ app.put('/api/agents/:id', requireRole('admin'), (req: AuthenticatedRequest, res
       ? Math.max(0, Math.min(100, Number(req.body.autoReplyThreshold)))
       : agent.autoReplyThreshold;
 
+  const nextModel =
+    typeof req.body?.model === 'string' && req.body.model.trim()
+      ? req.body.model.trim()
+      : agent.model;
+
+  const nextFallbackModel =
+    typeof req.body?.fallbackModel === 'string' && req.body.fallbackModel.trim()
+      ? req.body.fallbackModel.trim()
+      : agent.fallbackModel;
+
   const updated = storage.updateAIAgent({
     ...agent,
     name: typeof req.body?.name === 'string' && req.body.name.trim() ? req.body.name.trim() : agent.name,
     role: typeof req.body?.role === 'string' && req.body.role.trim() ? req.body.role.trim() : agent.role,
-    model: typeof req.body?.model === 'string' && req.body.model.trim() ? req.body.model.trim() : agent.model,
+    provider: nextProvider,
+    model: nextModel,
+    fallbackEnabled: nextFallbackEnabled,
+    fallbackProvider: nextFallbackProvider === nextProvider ? defaultSecondary : nextFallbackProvider,
+    fallbackModel: nextFallbackModel,
     status: requestedStatus,
     personality:
       typeof req.body?.personality === 'string' ? req.body.personality.trim() : agent.personality,
@@ -2772,6 +2834,80 @@ app.post('/api/integrations/test-gemini', requireRole('admin'), async (req: Auth
       error: `Falha ao testar API Gemini: ${err.message}`
     });
   }
+});
+
+app.post('/api/integrations/test-deepseek', requireRole('admin'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await testDeepSeekIntegration({
+      apiKey: typeof req.body?.apiKey === 'string' ? req.body.apiKey : undefined,
+      baseUrl: typeof req.body?.baseUrl === 'string' ? req.body.baseUrl : undefined,
+      model: typeof req.body?.model === 'string' ? req.body.model : undefined,
+      timeoutMs: req.body?.timeoutMs !== undefined ? Number(req.body.timeoutMs) : undefined,
+      maxTokens: req.body?.maxTokens !== undefined ? Number(req.body.maxTokens) : undefined,
+      quotaLimit: req.body?.quotaLimit !== undefined ? Number(req.body.quotaLimit) : undefined,
+      enabled: req.body?.enabled !== undefined ? Boolean(req.body.enabled) : undefined,
+      saveCredentials: req.body?.saveCredentials !== undefined ? Boolean(req.body.saveCredentials) : undefined
+    });
+    if (result.valid) {
+      return res.json(result);
+    }
+    return res.status(400).json(result);
+  } catch (err: any) {
+    return res.status(500).json({
+      valid: false,
+      error: `Falha ao testar API DeepSeek: ${err.message}`
+    });
+  }
+});
+
+app.get('/api/integrations/deepseek/models', requireRole('admin', 'comercial', 'suporte'), async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const hasKey = Boolean(storage.getEffectiveDeepSeekKey());
+    if (!hasKey) {
+      const curModels = storage.getIntegrations().deepseek?.availableModels || DEEPSEEK_INITIAL_MODELS;
+      return res.json({
+        ok: false,
+        source: 'fallback',
+        models: curModels,
+        liveModels: [],
+        integrations: storage.getSanitizedIntegrations()
+      });
+    }
+    const result = await fetchDeepSeekModels();
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({
+      ok: false,
+      source: 'fallback',
+      models: DEEPSEEK_INITIAL_MODELS,
+      error: err.message
+    });
+  }
+});
+
+app.post('/api/integrations/deepseek/models', requireRole('admin'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await fetchDeepSeekModels({
+      apiKey: typeof req.body?.apiKey === 'string' ? req.body.apiKey : undefined,
+      baseUrl: typeof req.body?.baseUrl === 'string' ? req.body.baseUrl : undefined
+    });
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({
+      ok: false,
+      source: 'fallback',
+      models: DEEPSEEK_INITIAL_MODELS,
+      error: err.message
+    });
+  }
+});
+
+app.get('/api/integrations/gemini/models', requireRole('admin', 'comercial', 'suporte'), (_req: AuthenticatedRequest, res: Response) => {
+  const curModels = storage.getIntegrations().gemini?.availableModels;
+  return res.json({
+    ok: true,
+    models: Array.isArray(curModels) && curModels.length > 0 ? curModels : GEMINI_AVAILABLE_MODELS
+  });
 });
 
 app.post('/api/integrations/test-meta-connection', requireRole('admin'), async (req: AuthenticatedRequest, res: Response) => {

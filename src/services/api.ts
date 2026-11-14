@@ -592,11 +592,21 @@ export const api = {
     ok: boolean;
     agent: AIAgentConfig;
     integrations: SystemIntegrations;
+    providerUsed?: 'gemini' | 'deepseek';
+    modelUsed?: string;
+    fallbackUsed?: boolean;
     message?: string;
     error?: string;
     diagnostics?: {
+      provider?: 'gemini' | 'deepseek';
+      model?: string;
       gemini: string;
+      deepseek?: string;
       latencyMs?: number;
+      httpStatus?: number;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
       metaCloud: string;
       googlePlaces: string;
     };
@@ -611,6 +621,11 @@ export const api = {
     replyText: string;
     shouldHandover: boolean;
     suggestedLeadStatus?: string;
+    providerUsed?: 'gemini' | 'deepseek';
+    modelUsed?: string;
+    fallbackUsed?: boolean;
+    latencyMs?: number;
+    totalTokens?: number;
     error?: string;
     agent?: AIAgentConfig;
     integrations?: SystemIntegrations;
@@ -631,6 +646,12 @@ export const api = {
     pitchDraft?: string;
     aiInsights?: string;
     geminiUsed: boolean;
+    aiUsed?: boolean;
+    providerUsed?: 'gemini' | 'deepseek';
+    modelUsed?: string;
+    fallbackUsed?: boolean;
+    latencyMs?: number;
+    totalTokens?: number;
     warning?: string;
     agent?: AIAgentConfig;
     integrations?: SystemIntegrations;
@@ -676,6 +697,59 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ model: model || '' })
     });
+  },
+  async testDeepSeek(payload?: {
+    apiKey?: string;
+    baseUrl?: string;
+    model?: string;
+    timeoutMs?: number;
+    maxTokens?: number;
+    quotaLimit?: number;
+    enabled?: boolean;
+    saveCredentials?: boolean;
+  }): Promise<{
+    valid: boolean;
+    status: string;
+    model?: string;
+    baseUrl?: string;
+    httpStatus?: number;
+    latencyMs?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    models?: string[];
+    modelsSource?: 'live_api' | 'fallback';
+    message?: string;
+    error?: string;
+    integrations?: SystemIntegrations;
+  }> {
+    return request('/api/integrations/test-deepseek', {
+      method: 'POST',
+      body: JSON.stringify(payload || {})
+    });
+  },
+  async fetchDeepSeekModels(payload?: {
+    apiKey?: string;
+    baseUrl?: string;
+  }): Promise<{
+    ok: boolean;
+    source: 'live_api' | 'fallback';
+    models: string[];
+    liveModels: string[];
+    httpStatus?: number;
+    error?: string;
+    integrations?: SystemIntegrations;
+  }> {
+    if (payload && (payload.apiKey || payload.baseUrl)) {
+      return request('/api/integrations/deepseek/models', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+    return request('/api/integrations/deepseek/models');
+  },
+  async fetchGeminiModels(): Promise<{ ok: boolean; models: string[] }> {
+    return request('/api/integrations/gemini/models');
   },
   async testMetaConnection(payload?: {
     enabled?: boolean;
@@ -798,7 +872,11 @@ export const api = {
   },
 
   // Firestore Cloud Sync
-  async exportCloudSnapshot(): Promise<{ users: any[]; buckets: Record<string, any[]> }> {
+  async exportCloudSnapshot(): Promise<{
+    users: any[];
+    buckets: Record<string, any[]>;
+    deletedWhatsAppIds?: Array<{ id: string; deletedAt: string }>;
+  }> {
     return request('/api/cloud/export');
   },
   async restoreCloudSnapshot(

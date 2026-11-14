@@ -46,6 +46,7 @@ interface DatabaseSchema {
   clients: Client[];
   prospects: ProspectCompany[];
   whatsappConversations: WhatsAppConversation[];
+  deletedWhatsAppConversations?: Array<{ id: string; deletedAt: string }>;
   whatsappLogs: WhatsAppIntegrationLog[];
   proposals: Proposal[];
   projects: Project[];
@@ -91,6 +92,30 @@ function getEnvPlacesKey(): string {
   return raw;
 }
 
+function getEnvDeepSeekKey(): string {
+  const raw = (process.env.DEEPSEEK_API_KEY || '').trim();
+  if (!raw || raw === 'MY_DEEPSEEK_API_KEY' || raw.length <= 5) return '';
+  return raw;
+}
+
+function normalizeDeepSeekBaseUrl(raw?: string): string {
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  if (!trimmed) {
+    const envBase = (process.env.DEEPSEEK_BASE_URL || '').trim();
+    return envBase ? envBase.replace(/\/+$/, '') : 'https://api.deepseek.com';
+  }
+  return trimmed.replace(/\/+$/, '');
+}
+
+function sanitizeErrorTextForLog(raw?: string): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  let cleaned = raw.trim();
+  if (!cleaned) return undefined;
+  cleaned = cleaned.replace(/Bearer\s+[A-Za-z0-9._\-]+/gi, 'Bearer [REDACTED]');
+  cleaned = cleaned.replace(/sk-[A-Za-z0-9_\-]{8,}/g, 'sk-[REDACTED]');
+  return cleaned.slice(0, 300);
+}
+
 function maskSecretHint(secret?: string): string | undefined {
   const trimmed = typeof secret === 'string' ? secret.trim() : '';
   if (!trimmed) return undefined;
@@ -110,6 +135,41 @@ function getCloudVaultKey(): Buffer {
     // keep fallback
   }
   return crypto.createHash('sha256').update(seed).digest();
+}
+
+function encryptSecretAtRest(secret?: string): string {
+  const trimmed = typeof secret === 'string' ? secret.trim() : '';
+  if (!trimmed) return '';
+  if (trimmed.startsWith('enc:v1:')) return trimmed;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', getCloudVaultKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(trimmed, 'utf-8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `enc:v1:${iv.toString('base64url')}.${tag.toString('base64url')}.${encrypted.toString('base64url')}`;
+}
+
+function decryptSecretAtRest(stored?: string): string {
+  const trimmed = typeof stored === 'string' ? stored.trim() : '';
+  if (!trimmed) return '';
+  if (!trimmed.startsWith('enc:v1:')) return trimmed;
+  try {
+    const payload = trimmed.slice('enc:v1:'.length);
+    const [ivB64, tagB64, dataB64] = payload.split('.');
+    if (!ivB64 || !tagB64 || !dataB64) return '';
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      getCloudVaultKey(),
+      Buffer.from(ivB64, 'base64url')
+    );
+    decipher.setAuthTag(Buffer.from(tagB64, 'base64url'));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataB64, 'base64url')),
+      decipher.final()
+    ]).toString('utf-8');
+    return decrypted.trim();
+  } catch {
+    return '';
+  }
 }
 
 function encryptVaultPayload(payload: Record<string, string | undefined>): string | undefined {
@@ -212,33 +272,108 @@ class StorageManager {
 
           const prospects = Array.isArray(parsed.prospects) ? parsed.prospects : (dirty = true, []);
 
-          // Normalize Gemini integration status from real runtime env
-          const integrations = parsed.integrations || initialIntegrations;
+          // Normalize Gemini integration status from real runtime env (preserving user's enabled/model/quota edits)
+          const integrations = parsed.integrations || JSON.parse(JSON.stringify(initialIntegrations));
           const hasGeminiEnv = Boolean(
             process.env.GEMINI_API_KEY &&
             process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' &&
             process.env.GEMINI_API_KEY.trim().length > 5
           );
-          if (integrations.gemini) {
-            if (!hasGeminiEnv) {
-              if (integrations.gemini.enabled || integrations.gemini.status !== 'nao_configurado') {
-                integrations.gemini.enabled = false;
-                integrations.gemini.status = 'nao_configurado';
-                dirty = true;
-              }
-            } else {
-              const expectedStatus = integrations.gemini.enabled ? 'conectado' : 'desconectado';
-              if (integrations.gemini.status === 'nao_configurado' && !integrations.gemini.enabled) {
-                integrations.gemini.enabled = true;
-                integrations.gemini.status = 'conectado';
-                dirty = true;
-              } else if (integrations.gemini.status !== expectedStatus && integrations.gemini.status !== 'limite_atingido') {
-                integrations.gemini.status = expectedStatus;
-                dirty = true;
-              }
+          if (!integrations.gemini) {
+            integrations.gemini = JSON.parse(JSON.stringify(initialIntegrations.gemini));
+            dirty = true;
+          }
+          if (!hasGeminiEnv) {
+            if (integrations.gemini.status !== 'nao_configurado') {
+              integrations.gemini.status = 'nao_configurado';
+              dirty = true;
             }
-            if (typeof integrations.gemini.model === 'string' && integrations.gemini.model.startsWith('gemini-2.')) {
-              integrations.gemini.model = 'gemini-4-hydrogen';
+          } else {
+            const expectedStatus = integrations.gemini.enabled ? 'conectado' : 'desconectado';
+            if (integrations.gemini.status === 'nao_configurado' && integrations.gemini.enabled) {
+              integrations.gemini.status = 'conectado';
+              dirty = true;
+            } else if (!integrations.gemini.enabled && integrations.gemini.status === 'conectado') {
+              integrations.gemini.status = 'desconectado';
+              dirty = true;
+            } else if (
+              integrations.gemini.status !== expectedStatus &&
+              integrations.gemini.status !== 'limite_atingido' &&
+              integrations.gemini.status !== 'erro'
+            ) {
+              integrations.gemini.status = expectedStatus;
+              dirty = true;
+            }
+          }
+          if (typeof integrations.gemini.model === 'string' && integrations.gemini.model.startsWith('gemini-2.')) {
+            integrations.gemini.model = 'gemini-4-hydrogen';
+            dirty = true;
+          }
+          if (!Array.isArray(integrations.gemini.availableModels) || integrations.gemini.availableModels.length === 0) {
+            integrations.gemini.availableModels = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+            dirty = true;
+          }
+
+          // Hydrate & normalize DeepSeek integration (encrypt plaintext apiKey if present)
+          if (!integrations.deepseek) {
+            integrations.deepseek = JSON.parse(JSON.stringify(initialIntegrations.deepseek));
+            dirty = true;
+          } else {
+            const ds = integrations.deepseek;
+            const decryptedDs = decryptSecretAtRest(ds.apiKey);
+            if (decryptedDs && ds.apiKey && !ds.apiKey.startsWith('enc:v1:')) {
+              ds.apiKey = encryptSecretAtRest(decryptedDs);
+              dirty = true;
+            }
+            const normalizedUrl = normalizeDeepSeekBaseUrl(ds.baseUrl);
+            if (ds.baseUrl !== normalizedUrl) {
+              ds.baseUrl = normalizedUrl;
+              dirty = true;
+            }
+            if (!ds.model || typeof ds.model !== 'string') {
+              ds.model = 'deepseek-flash';
+              dirty = true;
+            }
+            if (typeof ds.quotaLimit !== 'number' || ds.quotaLimit <= 0) {
+              ds.quotaLimit = 1500;
+              dirty = true;
+            }
+            if (typeof ds.timeoutMs !== 'number' || ds.timeoutMs < 2000) {
+              ds.timeoutMs = 25000;
+              dirty = true;
+            }
+            if (typeof ds.maxTokens !== 'number' || ds.maxTokens < 64) {
+              ds.maxTokens = 1200;
+              dirty = true;
+            }
+            if (typeof ds.requestsToday !== 'number' || ds.requestsToday < 0) {
+              ds.requestsToday = 0;
+              dirty = true;
+            }
+            if (typeof ds.tokensUsedToday !== 'number' || ds.tokensUsedToday < 0) {
+              ds.tokensUsedToday = 0;
+              dirty = true;
+            }
+            if (!Array.isArray(ds.availableModels) || ds.availableModels.length === 0) {
+              ds.availableModels = ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'];
+              dirty = true;
+            }
+            if (!Array.isArray(ds.usageHistory)) {
+              ds.usageHistory = [];
+              dirty = true;
+            } else if (ds.usageHistory.length > 50) {
+              ds.usageHistory = ds.usageHistory.slice(0, 50);
+              dirty = true;
+            }
+            const hasDsKey = Boolean(decryptedDs || getEnvDeepSeekKey());
+            if (!hasDsKey && ds.status !== 'nao_configurado') {
+              ds.status = 'nao_configurado';
+              dirty = true;
+            } else if (hasDsKey && !ds.enabled && ds.status === 'conectado') {
+              ds.status = 'desconectado';
+              dirty = true;
+            } else if (hasDsKey && ds.enabled && ds.status === 'nao_configurado') {
+              ds.status = 'conectado';
               dirty = true;
             }
           }
@@ -275,7 +410,7 @@ class StorageManager {
             }
           }
 
-          // Ensure Google Places uses Secrets env fallback if unconfigured, or remains disabled
+          // Ensure Google Places uses Secrets env fallback if unconfigured
           const envPlacesKey = getEnvPlacesKey();
           if (integrations.googlePlaces && !integrations.googlePlaces.apiKey?.trim()) {
             if (envPlacesKey && integrations.googlePlaces.status === 'nao_configurado') {
@@ -283,8 +418,7 @@ class StorageManager {
               integrations.googlePlaces.enabled = true;
               integrations.googlePlaces.status = 'conectado';
               dirty = true;
-            } else if (integrations.googlePlaces.enabled || integrations.googlePlaces.status !== 'nao_configurado') {
-              integrations.googlePlaces.enabled = false;
+            } else if (integrations.googlePlaces.status !== 'nao_configurado') {
               integrations.googlePlaces.status = 'nao_configurado';
               dirty = true;
             }
@@ -298,11 +432,35 @@ class StorageManager {
           const rawAgents =
             Array.isArray(parsed.aiAgents) && parsed.aiAgents.length > 0 ? parsed.aiAgents : initialAIAgents;
           const aiAgents = rawAgents.map((agent) => {
-            if (typeof agent.model === 'string' && agent.model.startsWith('gemini-2.')) {
+            let nextAgent = { ...agent };
+            if (!nextAgent.provider) {
+              nextAgent.provider =
+                typeof nextAgent.model === 'string' && nextAgent.model.toLowerCase().includes('deepseek')
+                  ? 'deepseek'
+                  : 'gemini';
               dirty = true;
-              return { ...agent, model: 'gemini-4-hydrogen' };
             }
-            return agent;
+            if (nextAgent.provider === 'gemini' && typeof nextAgent.model === 'string' && nextAgent.model.startsWith('gemini-2.')) {
+              nextAgent.model = 'gemini-4-hydrogen';
+              dirty = true;
+            }
+            if (nextAgent.fallbackEnabled === undefined) {
+              nextAgent.fallbackEnabled = false;
+              dirty = true;
+            }
+            if (!nextAgent.fallbackProvider) {
+              nextAgent.fallbackProvider = nextAgent.provider === 'deepseek' ? 'gemini' : 'deepseek';
+              dirty = true;
+            }
+            if (!nextAgent.fallbackModel) {
+              nextAgent.fallbackModel = nextAgent.fallbackProvider === 'deepseek' ? 'deepseek-flash' : 'gemini-4-hydrogen';
+              dirty = true;
+            }
+            if (!nextAgent.diagnostics) {
+              nextAgent.diagnostics = { errorCounts: {} };
+              dirty = true;
+            }
+            return nextAgent;
           });
 
           const hydrated: DatabaseSchema = {
@@ -310,6 +468,9 @@ class StorageManager {
             clients: Array.isArray(parsed.clients) ? parsed.clients : [],
             prospects,
             whatsappConversations: Array.isArray(parsed.whatsappConversations) ? parsed.whatsappConversations : [],
+            deletedWhatsAppConversations: Array.isArray(parsed.deletedWhatsAppConversations)
+              ? parsed.deletedWhatsAppConversations.filter((t) => t && typeof t.id === 'string' && typeof t.deletedAt === 'string').slice(0, 250)
+              : [],
             whatsappLogs: Array.isArray(parsed.whatsappLogs) ? parsed.whatsappLogs.slice(0, 100) : [],
             proposals: Array.isArray(parsed.proposals) ? parsed.proposals : [],
             projects: Array.isArray(parsed.projects) ? parsed.projects : [],
@@ -348,6 +509,7 @@ class StorageManager {
       clients: initialClients,
       prospects: [],
       whatsappConversations: initialWhatsAppConversations,
+      deletedWhatsAppConversations: [],
       whatsappLogs: [],
       proposals: initialProposals,
       projects: initialProjects,
@@ -801,22 +963,65 @@ class StorageManager {
         this.db.whatsappConversations.unshift(normalizedConv);
       }
     }
+    const savedId =
+      this.db.whatsappConversations.find((c) => c.id === normalizedConv.id)?.id ||
+      this.findWhatsAppConversationByPhone(normalizedPhone, effectivePid)?.id ||
+      normalizedConv.id;
+    this.clearWhatsAppDeletionTombstone(savedId);
     this.saveToFile();
     return (
-      this.db.whatsappConversations.find((c) => c.id === normalizedConv.id) ||
-      this.findWhatsAppConversationByPhone(normalizedPhone, effectivePid) ||
+      this.db.whatsappConversations.find((c) => c.id === savedId) ||
       normalizedConv
     );
   }
 
-  public deleteWhatsAppConversation(id: string): boolean {
-    const len = this.db.whatsappConversations.length;
-    this.db.whatsappConversations = this.db.whatsappConversations.filter((c) => c.id !== id);
-    if (this.db.whatsappConversations.length !== len) {
-      this.saveToFile();
-      return true;
+  private recordWhatsAppDeletionTombstone(id: string, deletedAtIso?: string) {
+    const cleanId = String(id || '').trim();
+    if (!cleanId) return;
+    const at = deletedAtIso || new Date().toISOString();
+    const cur = Array.isArray(this.db.deletedWhatsAppConversations)
+      ? this.db.deletedWhatsAppConversations
+      : [];
+    const existing = cur.find((t) => t.id === cleanId);
+    const keepAt =
+      existing && Date.parse(existing.deletedAt) > Date.parse(at)
+        ? existing.deletedAt
+        : at;
+    this.db.deletedWhatsAppConversations = [
+      { id: cleanId, deletedAt: keepAt },
+      ...cur.filter((t) => t.id !== cleanId)
+    ].slice(0, 250);
+  }
+
+  private clearWhatsAppDeletionTombstone(id: string) {
+    const cleanId = String(id || '').trim();
+    if (!cleanId || !Array.isArray(this.db.deletedWhatsAppConversations)) return;
+    this.db.deletedWhatsAppConversations = this.db.deletedWhatsAppConversations.filter(
+      (t) => t.id !== cleanId
+    );
+  }
+
+  public isWhatsAppConversationDeleted(id: string, remoteLastMessageTs?: string): boolean {
+    const cleanId = String(id || '').trim();
+    if (!cleanId || !Array.isArray(this.db.deletedWhatsAppConversations)) return false;
+    const entry = this.db.deletedWhatsAppConversations.find((t) => t.id === cleanId);
+    if (!entry) return false;
+    const deletedMs = Date.parse(entry.deletedAt) || 0;
+    const remoteMs = remoteLastMessageTs ? Date.parse(remoteLastMessageTs) || 0 : 0;
+    // Only resurrect automatically if a genuinely newer message arrived >2s after deletion
+    if (remoteMs > deletedMs + 2000) {
+      return false;
     }
-    return false;
+    return true;
+  }
+
+  public deleteWhatsAppConversation(id: string): boolean {
+    const cleanId = String(id || '').trim();
+    if (!cleanId) return false;
+    this.db.whatsappConversations = this.db.whatsappConversations.filter((c) => c.id !== cleanId);
+    this.recordWhatsAppDeletionTombstone(cleanId);
+    this.saveToFile();
+    return true;
   }
 
   public addWhatsAppMessage(
@@ -1042,10 +1247,14 @@ class StorageManager {
     let anyChanged = false;
     for (const remote of convs) {
       if (!remote || !remote.id) continue;
+      if (this.isWhatsAppConversationDeleted(remote.id, remote.lastMessageTimestamp)) {
+        continue;
+      }
       const normPhone = normalizePhoneForMeta(remote.contactPhone) || remote.contactPhone || '';
       const existingIdx = this.db.whatsappConversations.findIndex((c) => c.id === remote.id);
 
       if (existingIdx < 0) {
+        this.clearWhatsAppDeletionTombstone(remote.id);
         this.db.whatsappConversations.unshift({
           ...remote,
           contactPhone: normPhone || remote.contactPhone,
@@ -1232,6 +1441,108 @@ class StorageManager {
     return agent;
   }
 
+  public recordAIAgentExecution(
+    agentId: 'atendente' | 'prospector',
+    diag: {
+      provider: 'gemini' | 'deepseek';
+      model: string;
+      status: 'sucesso' | 'erro' | 'sem_saldo' | 'limite_atingido' | 'nao_configurado';
+      httpStatus?: number;
+      errorCode?: string;
+      errorMessage?: string;
+      latencyMs?: number;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      fallbackUsed?: boolean;
+    }
+  ): AIAgentConfig | undefined {
+    const idx = this.db.aiAgents.findIndex((a) => a.id === agentId);
+    if (idx < 0) return undefined;
+    const current = this.db.aiAgents[idx];
+    const prevDiag = current.diagnostics || {};
+    const errorCounts = { ...(prevDiag.errorCounts || {}) };
+
+    if (diag.status !== 'sucesso' && diag.httpStatus) {
+      if (diag.httpStatus === 401) errorCounts['401'] = (errorCounts['401'] || 0) + 1;
+      else if (diag.httpStatus === 402) errorCounts['402'] = (errorCounts['402'] || 0) + 1;
+      else if (diag.httpStatus === 403) errorCounts['403'] = (errorCounts['403'] || 0) + 1;
+      else if (diag.httpStatus === 429) errorCounts['429'] = (errorCounts['429'] || 0) + 1;
+      else if (diag.httpStatus >= 500) errorCounts['5xx'] = (errorCounts['5xx'] || 0) + 1;
+    }
+
+    const updated: AIAgentConfig = {
+      ...current,
+      diagnostics: {
+        ...prevDiag,
+        lastProvider: diag.provider,
+        lastModel: diag.model,
+        lastStatus: diag.status,
+        lastHttpStatus: diag.httpStatus,
+        lastErrorCode: diag.errorCode,
+        lastErrorMessage: sanitizeErrorTextForLog(diag.errorMessage),
+        lastLatencyMs: diag.latencyMs,
+        lastPromptTokens: diag.promptTokens,
+        lastCompletionTokens: diag.completionTokens,
+        lastTotalTokens: diag.totalTokens,
+        totalTokensConsumed: (prevDiag.totalTokensConsumed || 0) + (diag.totalTokens || 0),
+        lastExecutedAt: new Date().toISOString(),
+        fallbackUsedLastTime: Boolean(diag.fallbackUsed),
+        fallbackTriggeredCount:
+          (prevDiag.fallbackTriggeredCount || 0) + (diag.fallbackUsed ? 1 : 0),
+        errorCounts
+      }
+    };
+    this.db.aiAgents[idx] = updated;
+    this.saveToFile();
+    return updated;
+  }
+
+  public getEffectiveDeepSeekKey(): string {
+    const stored = decryptSecretAtRest(this.db.integrations.deepseek?.apiKey);
+    return stored || getEnvDeepSeekKey();
+  }
+
+  public recordDeepSeekUsage(entry: {
+    agentId?: string;
+    model: string;
+    status: 'sucesso' | 'erro' | 'sem_saldo' | 'limite_atingido';
+    httpStatus?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    latencyMs?: number;
+    errorSummary?: string;
+  }) {
+    const ds = this.db.integrations.deepseek;
+    const totalTok =
+      typeof entry.totalTokens === 'number' && entry.totalTokens > 0
+        ? entry.totalTokens
+        : (entry.promptTokens || 0) + (entry.completionTokens || 0);
+
+    const logItem = {
+      id: `dslog_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toISOString(),
+      agentId: entry.agentId || 'system',
+      provider: 'deepseek' as const,
+      model: entry.model,
+      status: entry.status,
+      ...(entry.httpStatus ? { httpStatus: entry.httpStatus } : {}),
+      ...(typeof entry.promptTokens === 'number' ? { promptTokens: entry.promptTokens } : {}),
+      ...(typeof entry.completionTokens === 'number' ? { completionTokens: entry.completionTokens } : {}),
+      ...(totalTok > 0 ? { totalTokens: totalTok } : {}),
+      ...(typeof entry.latencyMs === 'number' ? { latencyMs: entry.latencyMs } : {}),
+      ...(entry.errorSummary ? { errorSummary: sanitizeErrorTextForLog(entry.errorSummary) } : {})
+    };
+
+    const prevHistory = Array.isArray(ds.usageHistory) ? ds.usageHistory : [];
+    ds.usageHistory = [logItem, ...prevHistory].slice(0, 50);
+    if (totalTok > 0) {
+      ds.tokensUsedToday = (ds.tokensUsedToday || 0) + totalTok;
+    }
+    this.saveToFile();
+  }
+
   // Raw integrations for backend-only consumption
   public getIntegrations(): SystemIntegrations {
     return this.db.integrations;
@@ -1240,6 +1551,9 @@ class StorageManager {
   // Sanitized integrations for API responses (NEVER exposes API keys or tokens)
   public getSanitizedIntegrations(): SystemIntegrations {
     const raw = this.db.integrations;
+    const decryptedDsKey = decryptSecretAtRest(raw.deepseek?.apiKey);
+    const envDsKey = getEnvDeepSeekKey();
+
     return {
       metaCloud: {
         enabled: raw.metaCloud.enabled,
@@ -1284,7 +1598,28 @@ class StorageManager {
           process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' &&
           process.env.GEMINI_API_KEY.trim().length > 5
         ),
+        availableModels: raw.gemini.availableModels || ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'],
         status: raw.gemini.status
+      },
+      deepseek: {
+        enabled: Boolean(raw.deepseek?.enabled),
+        baseUrl: normalizeDeepSeekBaseUrl(raw.deepseek?.baseUrl),
+        model: raw.deepseek?.model || 'deepseek-flash',
+        hasApiKey: Boolean(decryptedDsKey),
+        apiKeyHint: maskSecretHint(decryptedDsKey),
+        hasEnvKey: Boolean(envDsKey),
+        requestsToday: raw.deepseek?.requestsToday ?? 0,
+        quotaLimit: raw.deepseek?.quotaLimit ?? 1500,
+        timeoutMs: raw.deepseek?.timeoutMs ?? 25000,
+        maxTokens: raw.deepseek?.maxTokens ?? 1200,
+        tokensUsedToday: raw.deepseek?.tokensUsedToday ?? 0,
+        availableModels:
+          Array.isArray(raw.deepseek?.availableModels) && raw.deepseek.availableModels.length > 0
+            ? raw.deepseek.availableModels
+            : ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+        modelsUpdatedAt: raw.deepseek?.modelsUpdatedAt,
+        usageHistory: Array.isArray(raw.deepseek?.usageHistory) ? raw.deepseek.usageHistory.slice(0, 50) : [],
+        status: raw.deepseek?.status || 'nao_configurado'
       }
     };
   }
@@ -1345,7 +1680,9 @@ class StorageManager {
     return this.getSanitizedIntegrations();
   }
 
-  public updateIntegrations(incoming: Partial<SystemIntegrations>): SystemIntegrations {
+  public updateIntegrations(
+    incoming: { [K in keyof SystemIntegrations]?: Partial<SystemIntegrations[K]> }
+  ): SystemIntegrations {
     const cur = this.db.integrations;
 
     if (incoming.metaCloud) {
@@ -1394,7 +1731,6 @@ class StorageManager {
         nextAccessToken !== (cur.metaCloud.accessToken || '') ||
         nextAppSecret !== (cur.metaCloud.appSecret || '');
 
-      // Never falsely mark 'conectado' on plain save when credentials changed or were unverified
       let nextStatus: SystemIntegrations['metaCloud']['status'];
       if (!configured) {
         nextStatus = 'nao_configurado';
@@ -1406,9 +1742,10 @@ class StorageManager {
         nextStatus = cur.metaCloud.status === 'conectado' ? 'conectado' : 'desconectado';
       }
 
+      // Preserve user's explicit enabled toggle without rolling back on partial config saves
       cur.metaCloud = {
         ...cur.metaCloud,
-        enabled: configured && enabled,
+        enabled: Boolean(enabled),
         phoneNumberId,
         wabaId,
         accessToken: nextAccessToken,
@@ -1432,9 +1769,15 @@ class StorageManager {
       const configured = Boolean(nextApiKey);
 
       cur.googlePlaces = {
-        enabled: configured && enabled,
+        enabled: incoming.googlePlaces.apiKey === '__CLEAR__' ? false : Boolean(enabled),
         apiKey: nextApiKey,
-        status: configured ? (enabled ? 'conectado' : 'desconectado') : 'nao_configurado'
+        status: configured
+          ? enabled
+            ? incoming.googlePlaces.status === 'erro'
+              ? 'erro'
+              : 'conectado'
+            : 'desconectado'
+          : 'nao_configurado'
       };
     }
 
@@ -1457,7 +1800,7 @@ class StorageManager {
       const configured = Boolean(nextApiKey);
 
       cur.asaas = {
-        enabled: configured && enabled,
+        enabled: incoming.asaas.apiKey === '__CLEAR__' ? false : Boolean(enabled),
         apiKey: nextApiKey,
         environment: incoming.asaas.environment ?? cur.asaas.environment,
         webhookSecret: nextWebhookSecret,
@@ -1471,7 +1814,8 @@ class StorageManager {
         process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' &&
         process.env.GEMINI_API_KEY.trim().length > 5
       );
-      const nextEnabled = hasEnvKey ? (incoming.gemini.enabled ?? cur.gemini.enabled) : false;
+      const nextEnabled =
+        incoming.gemini.enabled !== undefined ? Boolean(incoming.gemini.enabled) : cur.gemini.enabled;
       const nextModel =
         typeof incoming.gemini.model === 'string' && incoming.gemini.model.trim()
           ? incoming.gemini.model.trim()
@@ -1484,6 +1828,9 @@ class StorageManager {
         typeof incoming.gemini.requestsToday === 'number' && Number.isFinite(incoming.gemini.requestsToday) && incoming.gemini.requestsToday >= 0
           ? Math.floor(incoming.gemini.requestsToday)
           : cur.gemini.requestsToday;
+      const nextAvailableModels = Array.isArray(incoming.gemini.availableModels) && incoming.gemini.availableModels.length > 0
+        ? incoming.gemini.availableModels
+        : cur.gemini.availableModels || ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
 
       const derivedStatus = !hasEnvKey
         ? 'nao_configurado'
@@ -1500,14 +1847,104 @@ class StorageManager {
         model: nextModel,
         quotaLimit: nextQuota,
         requestsToday: nextRequests,
+        availableModels: nextAvailableModels,
         status: derivedStatus
       };
 
-      if ((incoming.gemini as any).syncAgents) {
-        this.db.aiAgents = this.db.aiAgents.map((agent) => ({
-          ...agent,
-          model: nextModel
-        }));
+      if ((incoming.gemini as any).syncAgents === true) {
+        this.db.aiAgents = this.db.aiAgents.map((agent) =>
+          (agent.provider || 'gemini') === 'gemini'
+            ? { ...agent, model: nextModel }
+            : agent
+        );
+      }
+    }
+
+    if (incoming.deepseek) {
+      const dsCur = cur.deepseek || initialIntegrations.deepseek;
+      const nextEncryptedKey =
+        incoming.deepseek.apiKey === '__CLEAR__'
+          ? ''
+          : typeof incoming.deepseek.apiKey === 'string' && incoming.deepseek.apiKey.trim()
+          ? encryptSecretAtRest(incoming.deepseek.apiKey.trim())
+          : dsCur.apiKey || '';
+
+      const decryptedKey = decryptSecretAtRest(nextEncryptedKey);
+      const hasEffectiveKey = Boolean(decryptedKey || getEnvDeepSeekKey());
+
+      const nextBaseUrl =
+        incoming.deepseek.baseUrl !== undefined
+          ? normalizeDeepSeekBaseUrl(incoming.deepseek.baseUrl)
+          : normalizeDeepSeekBaseUrl(dsCur.baseUrl);
+      const nextModel =
+        typeof incoming.deepseek.model === 'string' && incoming.deepseek.model.trim()
+          ? incoming.deepseek.model.trim()
+          : dsCur.model || 'deepseek-flash';
+      const nextEnabled =
+        incoming.deepseek.apiKey === '__CLEAR__' && !getEnvDeepSeekKey()
+          ? false
+          : incoming.deepseek.enabled !== undefined
+          ? Boolean(incoming.deepseek.enabled)
+          : dsCur.enabled;
+      const nextQuota =
+        typeof incoming.deepseek.quotaLimit === 'number' && Number.isFinite(incoming.deepseek.quotaLimit) && incoming.deepseek.quotaLimit > 0
+          ? Math.floor(incoming.deepseek.quotaLimit)
+          : dsCur.quotaLimit || 1500;
+      const nextTimeout =
+        typeof incoming.deepseek.timeoutMs === 'number' && Number.isFinite(incoming.deepseek.timeoutMs) && incoming.deepseek.timeoutMs >= 2000
+          ? Math.floor(incoming.deepseek.timeoutMs)
+          : dsCur.timeoutMs || 25000;
+      const nextMaxTokens =
+        typeof incoming.deepseek.maxTokens === 'number' && Number.isFinite(incoming.deepseek.maxTokens) && incoming.deepseek.maxTokens >= 64
+          ? Math.floor(incoming.deepseek.maxTokens)
+          : dsCur.maxTokens || 1200;
+      const nextRequests =
+        typeof incoming.deepseek.requestsToday === 'number' && Number.isFinite(incoming.deepseek.requestsToday) && incoming.deepseek.requestsToday >= 0
+          ? Math.floor(incoming.deepseek.requestsToday)
+          : dsCur.requestsToday ?? 0;
+      const nextTokensUsed =
+        typeof incoming.deepseek.tokensUsedToday === 'number' && Number.isFinite(incoming.deepseek.tokensUsedToday) && incoming.deepseek.tokensUsedToday >= 0
+          ? Math.floor(incoming.deepseek.tokensUsedToday)
+          : dsCur.tokensUsedToday ?? 0;
+      const nextAvailableModels =
+        Array.isArray(incoming.deepseek.availableModels) && incoming.deepseek.availableModels.length > 0
+          ? incoming.deepseek.availableModels
+          : dsCur.availableModels || ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'];
+      const nextModelsUpdatedAt = incoming.deepseek.modelsUpdatedAt ?? dsCur.modelsUpdatedAt;
+      const nextUsageHistory = Array.isArray(incoming.deepseek.usageHistory)
+        ? incoming.deepseek.usageHistory.slice(0, 50)
+        : dsCur.usageHistory || [];
+
+      const derivedStatus: SystemIntegrations['deepseek']['status'] = !hasEffectiveKey
+        ? 'nao_configurado'
+        : !nextEnabled
+        ? 'desconectado'
+        : incoming.deepseek.status ??
+          (dsCur.status === 'nao_configurado' || dsCur.status === 'desconectado'
+            ? 'conectado'
+            : dsCur.status);
+
+      cur.deepseek = {
+        ...dsCur,
+        enabled: nextEnabled,
+        baseUrl: nextBaseUrl,
+        model: nextModel,
+        apiKey: nextEncryptedKey,
+        requestsToday: nextRequests,
+        quotaLimit: nextQuota,
+        timeoutMs: nextTimeout,
+        maxTokens: nextMaxTokens,
+        tokensUsedToday: nextTokensUsed,
+        availableModels: nextAvailableModels,
+        modelsUpdatedAt: nextModelsUpdatedAt,
+        usageHistory: nextUsageHistory,
+        status: derivedStatus
+      };
+
+      if ((incoming.deepseek as any).syncAgents === true) {
+        this.db.aiAgents = this.db.aiAgents.map((agent) =>
+          agent.provider === 'deepseek' ? { ...agent, model: nextModel } : agent
+        );
       }
     }
 
@@ -1697,14 +2134,21 @@ class StorageManager {
     }
   }
 
-  // --- CLOUD SYNC SNAPSHOT (NEVER EXPOSES META/WHATSAPP TOKENS OR SECRETS) ---
+  // --- CLOUD SYNC SNAPSHOT (NEVER EXPOSES META/WHATSAPP TOKENS OR PLAINTEXT SECRETS) ---
   public getCloudSyncExport() {
     const rawInt = this.db.integrations;
+    const decryptedDsKey = decryptSecretAtRest(rawInt.deepseek?.apiKey);
     const encryptedVault = encryptVaultPayload({
       googlePlacesApiKey: rawInt.googlePlaces.apiKey,
       asaasApiKey: rawInt.asaas.apiKey,
-      asaasWebhookSecret: rawInt.asaas.webhookSecret
+      asaasWebhookSecret: rawInt.asaas.webhookSecret,
+      deepseekApiKey: decryptedDsKey
     });
+
+    const tombstones = (this.db.deletedWhatsAppConversations || []).slice(0, 200);
+    const activeConvs = this.db.whatsappConversations.filter(
+      (c) => !this.isWhatsAppConversationDeleted(c.id, c.lastMessageTimestamp)
+    );
 
     return {
       users: this.db.users.map(({ passwordHash, ...u }) => ({
@@ -1712,11 +2156,12 @@ class StorageManager {
         ...(passwordHash ? { passwordHash } : {}),
         hasPassword: Boolean(passwordHash)
       })),
+      deletedWhatsAppIds: tombstones,
       buckets: {
         leads: this.db.leads,
         clients: this.db.clients,
         prospects: this.db.prospects,
-        whatsappConversations: this.db.whatsappConversations,
+        whatsappConversations: activeConvs,
         whatsappLogs: (this.db.whatsappLogs || []).slice(0, 30),
         proposals: this.db.proposals,
         projects: this.db.projects,
@@ -1732,7 +2177,23 @@ class StorageManager {
               enabled: rawInt.gemini.enabled,
               model: rawInt.gemini.model,
               quotaLimit: rawInt.gemini.quotaLimit,
-              requestsToday: rawInt.gemini.requestsToday
+              requestsToday: rawInt.gemini.requestsToday,
+              availableModels: rawInt.gemini.availableModels || ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'],
+              status: rawInt.gemini.status
+            },
+            deepseek: {
+              enabled: Boolean(rawInt.deepseek?.enabled),
+              baseUrl: normalizeDeepSeekBaseUrl(rawInt.deepseek?.baseUrl),
+              model: rawInt.deepseek?.model || 'deepseek-flash',
+              quotaLimit: rawInt.deepseek?.quotaLimit ?? 1500,
+              timeoutMs: rawInt.deepseek?.timeoutMs ?? 25000,
+              maxTokens: rawInt.deepseek?.maxTokens ?? 1200,
+              requestsToday: rawInt.deepseek?.requestsToday ?? 0,
+              tokensUsedToday: rawInt.deepseek?.tokensUsedToday ?? 0,
+              availableModels: rawInt.deepseek?.availableModels || ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+              modelsUpdatedAt: rawInt.deepseek?.modelsUpdatedAt || '',
+              usageHistory: (rawInt.deepseek?.usageHistory || []).slice(0, 30),
+              status: rawInt.deepseek?.status || 'nao_configurado'
             },
             metaCloud: {
               enabled: rawInt.metaCloud.enabled,
@@ -1757,6 +2218,7 @@ class StorageManager {
               enabled: rawInt.asaas.enabled,
               environment: rawInt.asaas.environment
             },
+            deletedWhatsAppIds: tombstones,
             syncedAt: this.db.lastBackup || new Date().toISOString(),
             ...(encryptedVault ? { encryptedVault } : {})
           }
@@ -1772,12 +2234,23 @@ class StorageManager {
   ) {
     const onlyFillMissing = Boolean(options?.onlyFillMissing);
 
+    const cloudTombstones = Array.isArray(buckets.integrationsConfig?.[0]?.deletedWhatsAppIds)
+      ? buckets.integrationsConfig[0].deletedWhatsAppIds
+      : [];
+    for (const tb of cloudTombstones) {
+      if (tb && typeof tb.id === 'string' && typeof tb.deletedAt === 'string') {
+        this.recordWhatsAppDeletionTombstone(tb.id, tb.deletedAt);
+      }
+    }
+
     if (!onlyFillMissing) {
       if (Array.isArray(buckets.leads)) this.db.leads = buckets.leads;
       if (Array.isArray(buckets.clients)) this.db.clients = buckets.clients;
       if (Array.isArray(buckets.prospects)) this.db.prospects = buckets.prospects;
       if (Array.isArray(buckets.whatsappConversations)) {
-        this.db.whatsappConversations = buckets.whatsappConversations;
+        this.db.whatsappConversations = buckets.whatsappConversations.filter(
+          (c: WhatsAppConversation) => c && c.id && !this.isWhatsAppConversationDeleted(c.id, c.lastMessageTimestamp)
+        );
       }
       if (Array.isArray(buckets.whatsappLogs)) {
         this.db.whatsappLogs = buckets.whatsappLogs.slice(0, 100);
@@ -1789,11 +2262,19 @@ class StorageManager {
       }
       if (Array.isArray(buckets.supportTickets)) this.db.supportTickets = buckets.supportTickets;
       if (Array.isArray(buckets.aiAgents) && buckets.aiAgents.length > 0) {
-        this.db.aiAgents = buckets.aiAgents.map((agent: AIAgentConfig) =>
-          typeof agent?.model === 'string' && agent.model.startsWith('gemini-2.')
-            ? { ...agent, model: 'gemini-4-hydrogen' }
-            : agent
-        );
+        this.db.aiAgents = buckets.aiAgents.map((agent: AIAgentConfig) => ({
+          ...agent,
+          provider: agent.provider || 'gemini',
+          model:
+            agent.provider !== 'deepseek' && typeof agent?.model === 'string' && agent.model.startsWith('gemini-2.')
+              ? 'gemini-4-hydrogen'
+              : agent.model,
+          fallbackEnabled: Boolean(agent.fallbackEnabled),
+          fallbackProvider: agent.fallbackProvider || (agent.provider === 'deepseek' ? 'gemini' : 'deepseek'),
+          fallbackModel:
+            agent.fallbackModel || ((agent.fallbackProvider || (agent.provider === 'deepseek' ? 'gemini' : 'deepseek')) === 'deepseek' ? 'deepseek-flash' : 'gemini-4-hydrogen'),
+          diagnostics: agent.diagnostics || { errorCounts: {} }
+        }));
       }
       if (Array.isArray(buckets.services)) this.db.services = buckets.services;
       if (Array.isArray(buckets.crmStages) && buckets.crmStages.length > 0) {
@@ -1810,7 +2291,6 @@ class StorageManager {
       const vault = decryptVaultPayload(cfg.encryptedVault);
 
       if (cfg.metaCloud && typeof cfg.metaCloud === 'object') {
-        // Preserve backend-only Meta secrets strictly on the server (never overwrite with empty cloud values)
         const curMetaToken = cur.metaCloud.accessToken?.trim() || '';
         const curVerifyToken = cur.metaCloud.webhookVerifyToken?.trim() || '';
 
@@ -1830,8 +2310,8 @@ class StorageManager {
         const configured = Boolean(phoneNumberId.trim() && curMetaToken);
         const enabled =
           onlyFillMissing && curMetaToken
-            ? cur.metaCloud.enabled && configured
-            : Boolean(cfg.metaCloud.enabled) && configured;
+            ? cur.metaCloud.enabled
+            : Boolean(cfg.metaCloud.enabled);
         cur.metaCloud = {
           ...cur.metaCloud,
           phoneNumberId,
@@ -1853,8 +2333,8 @@ class StorageManager {
         const configured = Boolean(nextPlacesKey);
         const enabled =
           onlyFillMissing && curPlacesKey
-            ? cur.googlePlaces.enabled && configured
-            : Boolean(cfg.googlePlaces.enabled) && configured;
+            ? cur.googlePlaces.enabled
+            : Boolean(cfg.googlePlaces.enabled);
         cur.googlePlaces = {
           ...cur.googlePlaces,
           apiKey: nextPlacesKey,
@@ -1879,8 +2359,8 @@ class StorageManager {
         const configured = Boolean(nextAsaasKey);
         const enabled =
           onlyFillMissing && curAsaasKey
-            ? cur.asaas.enabled && configured
-            : Boolean(cfg.asaas.enabled) && configured;
+            ? cur.asaas.enabled
+            : Boolean(cfg.asaas.enabled);
         const env =
           onlyFillMissing && curAsaasKey
             ? cur.asaas.environment
@@ -1906,8 +2386,8 @@ class StorageManager {
         const rawModel =
           typeof cfg.gemini.model === 'string' && cfg.gemini.model.trim()
             ? cfg.gemini.model.trim()
-            : cur.gemini.model || 'gemini-3.8-flash';
-        const nextModel = rawModel.startsWith('gemini-2.') ? 'gemini-3.8-flash' : rawModel;
+            : cur.gemini.model || 'gemini-4-hydrogen';
+        const nextModel = rawModel.startsWith('gemini-2.') ? 'gemini-4-hydrogen' : rawModel;
         const nextQuota =
           typeof cfg.gemini.quotaLimit === 'number' &&
           Number.isFinite(cfg.gemini.quotaLimit) &&
@@ -1920,7 +2400,7 @@ class StorageManager {
           cfg.gemini.requestsToday >= 0
             ? Math.floor(cfg.gemini.requestsToday)
             : cur.gemini.requestsToday;
-        const nextEnabled = hasEnvKey ? Boolean(cfg.gemini.enabled) : false;
+        const nextEnabled = Boolean(cfg.gemini.enabled);
 
         cur.gemini = {
           ...cur.gemini,
@@ -1929,6 +2409,69 @@ class StorageManager {
           quotaLimit: nextQuota,
           requestsToday: nextRequests,
           status: !hasEnvKey ? 'nao_configurado' : nextEnabled ? 'conectado' : 'desconectado'
+        };
+      }
+
+      if ((cfg.deepseek && typeof cfg.deepseek === 'object') || vault.deepseekApiKey) {
+        const dsCur = cur.deepseek || initialIntegrations.deepseek;
+        const curDsPlain = decryptSecretAtRest(dsCur.apiKey);
+        const cloudDsPlain = (vault.deepseekApiKey || '').trim();
+        const nextDsPlain = onlyFillMissing
+          ? curDsPlain || cloudDsPlain || getEnvDeepSeekKey()
+          : cloudDsPlain || curDsPlain || getEnvDeepSeekKey();
+        const nextEncrypted = nextDsPlain ? encryptSecretAtRest(nextDsPlain) : '';
+        const hasDsKey = Boolean(nextDsPlain || getEnvDeepSeekKey());
+
+        const dsCfg = cfg.deepseek && typeof cfg.deepseek === 'object' ? cfg.deepseek : {};
+        const nextEnabled =
+          onlyFillMissing && curDsPlain
+            ? dsCur.enabled
+            : dsCfg.enabled !== undefined
+            ? Boolean(dsCfg.enabled)
+            : Boolean(hasDsKey);
+
+        cur.deepseek = {
+          ...dsCur,
+          apiKey: nextEncrypted,
+          enabled: nextEnabled,
+          baseUrl:
+            !onlyFillMissing && typeof dsCfg.baseUrl === 'string' && dsCfg.baseUrl.trim()
+              ? normalizeDeepSeekBaseUrl(dsCfg.baseUrl)
+              : normalizeDeepSeekBaseUrl(dsCur.baseUrl),
+          model:
+            !onlyFillMissing && typeof dsCfg.model === 'string' && dsCfg.model.trim()
+              ? dsCfg.model.trim()
+              : dsCur.model || 'deepseek-flash',
+          quotaLimit:
+            !onlyFillMissing && typeof dsCfg.quotaLimit === 'number' && dsCfg.quotaLimit > 0
+              ? Math.floor(dsCfg.quotaLimit)
+              : dsCur.quotaLimit || 1500,
+          timeoutMs:
+            !onlyFillMissing && typeof dsCfg.timeoutMs === 'number' && dsCfg.timeoutMs >= 2000
+              ? Math.floor(dsCfg.timeoutMs)
+              : dsCur.timeoutMs || 25000,
+          maxTokens:
+            !onlyFillMissing && typeof dsCfg.maxTokens === 'number' && dsCfg.maxTokens >= 64
+              ? Math.floor(dsCfg.maxTokens)
+              : dsCur.maxTokens || 1200,
+          requestsToday:
+            !onlyFillMissing && typeof dsCfg.requestsToday === 'number' && dsCfg.requestsToday >= 0
+              ? Math.floor(dsCfg.requestsToday)
+              : dsCur.requestsToday ?? 0,
+          tokensUsedToday:
+            !onlyFillMissing && typeof dsCfg.tokensUsedToday === 'number' && dsCfg.tokensUsedToday >= 0
+              ? Math.floor(dsCfg.tokensUsedToday)
+              : dsCur.tokensUsedToday ?? 0,
+          availableModels:
+            !onlyFillMissing && Array.isArray(dsCfg.availableModels) && dsCfg.availableModels.length > 0
+              ? dsCfg.availableModels
+              : dsCur.availableModels || ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+          modelsUpdatedAt: !onlyFillMissing ? dsCfg.modelsUpdatedAt || dsCur.modelsUpdatedAt : dsCur.modelsUpdatedAt,
+          usageHistory:
+            !onlyFillMissing && Array.isArray(dsCfg.usageHistory)
+              ? dsCfg.usageHistory.slice(0, 50)
+              : dsCur.usageHistory || [],
+          status: !hasDsKey ? 'nao_configurado' : nextEnabled ? 'conectado' : 'desconectado'
         };
       }
     }

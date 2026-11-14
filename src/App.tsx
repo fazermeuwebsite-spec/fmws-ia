@@ -78,7 +78,7 @@ export default function App() {
   const [permissions, setPermissions] = useState<string[]>([]);
 
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'integrations' | 'gemini' | 'places' | 'services' | 'users'>('integrations');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'integrations' | 'gemini' | 'deepseek' | 'places' | 'services' | 'users'>('integrations');
   const [users, setUsers] = useState<User[]>([]);
 
   // Data collections
@@ -139,6 +139,7 @@ export default function App() {
   const firestoreConvInitRef = useRef(false);
   const lastSeenFsTimestampsRef = useRef<Map<string, number>>(new Map());
   const hydratedMsgConvIdsRef = useRef<Set<string>>(new Set());
+  const deletedWhatsAppAtRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     currentTabRef.current = currentTab;
@@ -470,7 +471,8 @@ export default function App() {
         integrations.metaCloud.hasAccessToken ||
         integrations.metaCloud.hasWebhookVerifyToken ||
         integrations.metaCloud.hasBridgeSecret ||
-        integrations.asaas.hasApiKey
+        integrations.asaas.hasApiKey ||
+        integrations.deepseek?.hasApiKey
     );
 
     const needsIntegrationSecretRestore = !hasAnyLocalIntegrationSecret;
@@ -550,6 +552,7 @@ export default function App() {
     integrations.metaCloud.hasWebhookVerifyToken,
     integrations.metaCloud.hasBridgeSecret,
     integrations.asaas.hasApiKey,
+    integrations.deepseek?.hasApiKey,
     permissions,
     loadAllData
   ]);
@@ -606,13 +609,20 @@ export default function App() {
         if (!event || typeof event.type !== 'string') return;
 
         if (event.type === 'whatsapp:init' && Array.isArray(event.conversations)) {
-          setWhatsappConversations(event.conversations);
-          setActiveWhatsAppId((prev) => prev || event.conversations[0]?.id || '');
+          const filtered = (event.conversations as WhatsAppConversation[]).filter((c) => {
+            const delMs = deletedWhatsAppAtRef.current.get(c.id);
+            if (delMs === undefined) return true;
+            const msgMs = Date.parse(c.lastMessageTimestamp || '') || 0;
+            return msgMs > delMs + 2000;
+          });
+          setWhatsappConversations(filtered);
+          setActiveWhatsAppId((prev) => prev || filtered[0]?.id || '');
           return;
         }
 
         if (event.type === 'whatsapp:conversation_created' && event.conversation) {
           const created = event.conversation as WhatsAppConversation;
+          deletedWhatsAppAtRef.current.delete(created.id);
           setWhatsappConversations((prev) => {
             if (prev.some((c) => c.id === created.id)) {
               return prev.map((c) => (c.id === created.id ? created : c));
@@ -625,6 +635,10 @@ export default function App() {
 
         if (event.type === 'whatsapp:conversation_updated' && event.conversation) {
           const updated = event.conversation as WhatsAppConversation;
+          const delMs = deletedWhatsAppAtRef.current.get(updated.id);
+          if (delMs !== undefined && (Date.parse(updated.lastMessageTimestamp || '') || 0) <= delMs + 2000) {
+            return;
+          }
           setWhatsappConversations((prev) => {
             const exists = prev.some((c) => c.id === updated.id);
             return exists ? prev.map((c) => (c.id === updated.id ? updated : c)) : [updated, ...prev];
@@ -634,6 +648,9 @@ export default function App() {
 
         if (event.type === 'whatsapp:conversation_deleted' && event.conversationId) {
           const deletedId = String(event.conversationId);
+          deletedWhatsAppAtRef.current.set(deletedId, Date.now());
+          hydratedMsgConvIdsRef.current.delete(deletedId);
+          lastSeenFsTimestampsRef.current.delete(deletedId);
           setWhatsappConversations((prev) => {
             const remaining = prev.filter((c) => c.id !== deletedId);
             if (activeWhatsAppIdRef.current === deletedId) {
@@ -845,7 +862,18 @@ export default function App() {
     firestoreConvInitRef.current = false;
 
     const unsubConvs = subscribeWhatsAppConversationsFromFirestore(workspaceId, {
-      onConversations: (remoteConvs) => {
+      onConversations: (rawRemoteConvs) => {
+        const remoteConvs = rawRemoteConvs.filter((rc) => {
+          const delMs = deletedWhatsAppAtRef.current.get(rc.id);
+          if (delMs === undefined) return true;
+          const msgMs = Date.parse(rc.lastMessageTimestamp || '') || 0;
+          if (msgMs > delMs + 2000) {
+            deletedWhatsAppAtRef.current.delete(rc.id);
+            return true;
+          }
+          return false;
+        });
+
         if (remoteConvs.length > 0) {
           setRealtimeStatus((prev) => (prev === 'ws' ? 'ws' : 'sse'));
         }
@@ -913,7 +941,7 @@ export default function App() {
           }
 
           for (const p of prev) {
-            if (!seenIds.has(p.id)) {
+            if (!seenIds.has(p.id) && !deletedWhatsAppAtRef.current.has(p.id)) {
               mergedList.push(p);
             }
           }
@@ -1414,6 +1442,7 @@ export default function App() {
         setLeads((prev) => prev.map((l) => (l.id === leadId ? res.lead : l)));
       }
       if (res.conversation) {
+        deletedWhatsAppAtRef.current.delete(res.conversation.id);
         setWhatsappConversations((prev) => {
           const exists = prev.some((c) => c.id === res.conversation.id);
           return exists
@@ -1498,6 +1527,7 @@ export default function App() {
         leadId: lead?.id,
         clientId: client?.id
       });
+      deletedWhatsAppAtRef.current.delete(created.id);
       setWhatsappConversations((prev) => {
         const exists = prev.some((c) => c.id === created.id);
         return exists ? prev : [created, ...prev];
@@ -1696,7 +1726,9 @@ export default function App() {
 
   const handleDeleteWhatsAppConversation = async (convId: string) => {
     try {
-      await api.deleteWhatsAppConversation(convId);
+      deletedWhatsAppAtRef.current.set(convId, Date.now());
+      hydratedMsgConvIdsRef.current.delete(convId);
+      lastSeenFsTimestampsRef.current.delete(convId);
       setWhatsappConversations((prev) => {
         const remaining = prev.filter((c) => c.id !== convId);
         if (activeWhatsAppId === convId) {
@@ -1704,9 +1736,11 @@ export default function App() {
         }
         return remaining;
       });
+      await api.deleteWhatsAppConversation(convId);
       const fbUid = firebaseAuth.currentUser?.emailVerified ? firebaseAuth.currentUser.uid : '';
       if (fbUid && !restoringFromCloudRef.current) {
         await deleteWhatsAppConversationInFirestore(fbUid, convId);
+        await syncNowToFirestore();
       }
     } catch (err) {
       reportError(err, 'Falha ao excluir conversa do WhatsApp.');
@@ -1952,7 +1986,7 @@ export default function App() {
   const handleUpdateIntegrations = async (data: any) => {
     const updated = await api.updateIntegrations(data);
     setIntegrations(updated);
-    if (data?.gemini?.syncAgents) {
+    if (data?.gemini?.syncAgents || data?.deepseek?.syncAgents) {
       try {
         const freshAgents = await api.getAIAgents();
         setAiAgents(freshAgents);

@@ -67,7 +67,11 @@ export const initialAIAgents: AIAgentConfig[] = [
     role: 'Atendente Virtual WhatsApp & Qualificador de Oportunidades',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     status: 'nao_configurado',
+    provider: 'gemini',
     model: 'gemini-4-hydrogen',
+    fallbackEnabled: false,
+    fallbackProvider: 'deepseek',
+    fallbackModel: 'deepseek-flash',
     personality: 'Cordial, consultivo, focado em entender as dores digitais da empresa do cliente e demonstrar autoridade técnica da Fazer Meu Website.',
     instructions: `Você é a Atendente IA oficial da Fazer Meu Website (FMWS SALES AI).
 Suas atribuições:
@@ -91,6 +95,9 @@ Suas atribuições:
       leadsHandled: 0,
       tasksCompleted: 0,
       accuracyScore: 0
+    },
+    diagnostics: {
+      errorCounts: {}
     }
   },
   {
@@ -99,7 +106,11 @@ Suas atribuições:
     role: 'Inteligência de Mercado & Caçador de Oportunidades Comerciais',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     status: 'nao_configurado',
+    provider: 'gemini',
     model: 'gemini-4-hydrogen',
+    fallbackEnabled: false,
+    fallbackProvider: 'deepseek',
+    fallbackModel: 'deepseek-flash',
     personality: 'Analítico, cirúrgico, focado em dados técnicos objetivos e argumentos comerciais sobre presença digital.',
     instructions: `Você é o Prospector IA oficial da Fazer Meu Website.
 Suas atribuições:
@@ -125,6 +136,9 @@ Suas atribuições:
       leadsHandled: 0,
       tasksCompleted: 0,
       accuracyScore: 0
+    },
+    diagnostics: {
+      errorCounts: {}
     }
   }
 ];
@@ -133,6 +147,17 @@ const hasValidGeminiKey =
   typeof process !== 'undefined' &&
   process.env?.GEMINI_API_KEY &&
   process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY';
+
+const hasValidDeepSeekKey =
+  typeof process !== 'undefined' &&
+  process.env?.DEEPSEEK_API_KEY &&
+  process.env.DEEPSEEK_API_KEY !== 'MY_DEEPSEEK_API_KEY' &&
+  process.env.DEEPSEEK_API_KEY.trim().length > 5;
+
+const envDeepSeekBaseUrl =
+  typeof process !== 'undefined' && process.env?.DEEPSEEK_BASE_URL
+    ? process.env.DEEPSEEK_BASE_URL.trim()
+    : 'https://api.deepseek.com';
 
 export const initialIntegrations: SystemIntegrations = {
   metaCloud: {
@@ -165,6 +190,21 @@ export const initialIntegrations: SystemIntegrations = {
     model: 'gemini-4-hydrogen',
     requestsToday: 0,
     quotaLimit: 1500,
+    availableModels: ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'],
     status: hasValidGeminiKey ? 'conectado' : 'nao_configurado'
+  },
+  deepseek: {
+    enabled: Boolean(hasValidDeepSeekKey),
+    baseUrl: envDeepSeekBaseUrl || 'https://api.deepseek.com',
+    model: 'deepseek-flash',
+    apiKey: '',
+    requestsToday: 0,
+    quotaLimit: 1500,
+    timeoutMs: 25000,
+    maxTokens: 1200,
+    tokensUsedToday: 0,
+    availableModels: ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+    usageHistory: [],
+    status: hasValidDeepSeekKey ? 'conectado' : 'nao_configurado'
   }
 };

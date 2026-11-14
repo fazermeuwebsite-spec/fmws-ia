@@ -136,6 +136,7 @@ export async function signOutFirebase() {
 export interface CloudSyncSnapshot {
   users: any[];
   buckets: Record<string, any[]>;
+  deletedWhatsAppIds?: Array<{ id: string; deletedAt: string }>;
 }
 
 let activeFirestoreSyncChain: Promise<void> = Promise.resolve();
@@ -319,16 +320,43 @@ async function executeAtomicFirestoreSync(snapshot: CloudSyncSnapshot): Promise<
     return cleaned || `id_${Date.now()}`;
   };
 
-  const whatsappConversations = Array.isArray(snapshot.buckets.whatsappConversations)
-    ? snapshot.buckets.whatsappConversations
+  const deletedTombstones = Array.isArray(snapshot.deletedWhatsAppIds)
+    ? snapshot.deletedWhatsAppIds
+    : Array.isArray(snapshot.buckets?.integrationsConfig?.[0]?.deletedWhatsAppIds)
+    ? snapshot.buckets.integrationsConfig[0].deletedWhatsAppIds
     : [];
 
-  if (whatsappConversations.length > 0) {
+  const tombstoneMap = new Map<string, number>();
+  for (const tb of deletedTombstones) {
+    if (tb && typeof tb.id === 'string' && typeof tb.deletedAt === 'string') {
+      const ms = Date.parse(tb.deletedAt) || Date.now();
+      tombstoneMap.set(tb.id, ms);
+      tombstoneMap.set(sanitizeFsId(tb.id), ms);
+    }
+  }
+
+  const isTombstoned = (id: string, lastMsgTs?: string): boolean => {
+    const delMs = tombstoneMap.get(id) ?? tombstoneMap.get(sanitizeFsId(id));
+    if (delMs === undefined) return false;
+    const msgMs = lastMsgTs ? Date.parse(lastMsgTs) || 0 : 0;
+    return msgMs <= delMs + 2000;
+  };
+
+  const rawWhatsappConversations = Array.isArray(snapshot.buckets.whatsappConversations)
+    ? snapshot.buckets.whatsappConversations
+    : [];
+  const whatsappConversations = rawWhatsappConversations.filter(
+    (c: any) => c && c.id && !isTombstoned(String(c.id), c.lastMessageTimestamp)
+  );
+
+  if (whatsappConversations.length > 0 || tombstoneMap.size > 0) {
     let existingContactsSnap: any;
     let existingConvsSnap: any;
     try {
       [existingContactsSnap, existingConvsSnap] = await Promise.all([
-        getDocs(query(collection(db, 'workspaces', workspaceId, 'whatsappContacts'), where('ownerId', '==', workspaceId))),
+        whatsappConversations.length > 0
+          ? getDocs(query(collection(db, 'workspaces', workspaceId, 'whatsappContacts'), where('ownerId', '==', workspaceId)))
+          : Promise.resolve({ docs: [] }),
         getDocs(query(collection(db, 'workspaces', workspaceId, 'whatsappConversations'), where('ownerId', '==', workspaceId)))
       ]);
     } catch (err) {
@@ -341,7 +369,30 @@ async function executeAtomicFirestoreSync(snapshot: CloudSyncSnapshot): Promise<
     }
     const existingConvsMap = new Map<string, Record<string, any>>();
     for (const d of existingConvsSnap.docs) {
-      existingConvsMap.set(d.id, d.data() || {});
+      const data = d.data() || {};
+      existingConvsMap.set(d.id, data);
+      const dataId = String(data.id || d.id);
+      if (isTombstoned(d.id, data.lastMessageTimestamp) || isTombstoned(dataId, data.lastMessageTimestamp)) {
+        try {
+          const [msgSnap, hoSnap] = await Promise.all([
+            getDocs(query(collection(db, 'workspaces', workspaceId, 'whatsappConversations', d.id, 'messages'), where('ownerId', '==', workspaceId))),
+            getDocs(query(collection(db, 'workspaces', workspaceId, 'whatsappConversations', d.id, 'handovers'), where('ownerId', '==', workspaceId)))
+          ]);
+          for (const md of msgSnap.docs) {
+            ops.push({ kind: 'delete', ref: md.ref, path: `workspaces/${workspaceId}/whatsappConversations/${d.id}/messages/${md.id}` });
+          }
+          for (const hd of hoSnap.docs) {
+            ops.push({ kind: 'delete', ref: hd.ref, path: `workspaces/${workspaceId}/whatsappConversations/${d.id}/handovers/${hd.id}` });
+          }
+        } catch {
+          // Proceed with deleting parent doc
+        }
+        ops.push({
+          kind: 'delete',
+          ref: d.ref,
+          path: `workspaces/${workspaceId}/whatsappConversations/${d.id}`
+        });
+      }
     }
 
     const seenPhones = new Set<string>();
@@ -691,6 +742,25 @@ export async function loadSnapshotFromFirestore(): Promise<CloudSyncSnapshot> {
     }
   } catch (err) {
     handleFirestoreError(err, OperationType.LIST, bucketsPath);
+  }
+
+  const cloudTombstones = Array.isArray(buckets.integrationsConfig?.[0]?.deletedWhatsAppIds)
+    ? buckets.integrationsConfig[0].deletedWhatsAppIds
+    : [];
+  if (Array.isArray(buckets.whatsappConversations) && cloudTombstones.length > 0) {
+    const tombstoneById = new Map<string, number>();
+    for (const tb of cloudTombstones) {
+      if (tb && typeof tb.id === 'string' && typeof tb.deletedAt === 'string') {
+        tombstoneById.set(tb.id, Date.parse(tb.deletedAt) || 0);
+      }
+    }
+    buckets.whatsappConversations = buckets.whatsappConversations.filter((c: any) => {
+      if (!c || !c.id) return false;
+      const delMs = tombstoneById.get(String(c.id));
+      if (delMs === undefined) return true;
+      const msgMs = c.lastMessageTimestamp ? Date.parse(c.lastMessageTimestamp) || 0 : 0;
+      return msgMs > delMs + 2000;
+    });
   }
 
   return { users, buckets };
@@ -1250,42 +1320,67 @@ export async function deleteWhatsAppConversationInFirestore(
   const user = auth.currentUser;
   if (!user || !user.emailVerified || user.uid !== workspaceId) return;
 
-  const convId = sanitizeWhatsAppFsId(conversationId);
-  const convPath = `workspaces/${workspaceId}/whatsappConversations/${convId}`;
+  const sanitizedId = sanitizeWhatsAppFsId(conversationId);
+  const candidateDocIds = new Set<string>([sanitizedId]);
+  if (conversationId && conversationId.trim()) {
+    candidateDocIds.add(conversationId.trim());
+  }
+
   try {
-    const [msgSnap, hoSnap] = await Promise.all([
-      getDocs(
-        query(
-          collection(db, 'workspaces', workspaceId, 'whatsappConversations', convId, 'messages'),
-          where('ownerId', '==', workspaceId)
-        )
-      ),
-      getDocs(
-        query(
-          collection(db, 'workspaces', workspaceId, 'whatsappConversations', convId, 'handovers'),
-          where('ownerId', '==', workspaceId)
-        )
+    const convsSnap = await getDocs(
+      query(
+        collection(db, 'workspaces', workspaceId, 'whatsappConversations'),
+        where('ownerId', '==', workspaceId)
       )
-    ]);
-
-    const refs = [
-      ...msgSnap.docs.map((d) => d.ref),
-      ...hoSnap.docs.map((d) => d.ref),
-      doc(db, 'workspaces', workspaceId, 'whatsappConversations', convId)
-    ];
-
-    for (let i = 0; i < refs.length; i += 400) {
-      const batch = writeBatch(db);
-      for (const r of refs.slice(i, i + 400)) {
-        batch.delete(r);
+    );
+    for (const d of convsSnap.docs) {
+      const data = d.data() || {};
+      if (d.id === conversationId || d.id === sanitizedId || data.id === conversationId) {
+        candidateDocIds.add(d.id);
       }
-      await batch.commit();
     }
-  } catch (error) {
-    // Ignore missing doc deletes, surface permission errors cleanly
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg.includes('permission') || msg.includes('PERMISSION_DENIED')) {
-      handleFirestoreError(error, OperationType.DELETE, convPath);
+  } catch {
+    // Fallback to deleting sanitizedId directly
+  }
+
+  for (const targetDocId of candidateDocIds) {
+    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(targetDocId)) continue;
+    const convPath = `workspaces/${workspaceId}/whatsappConversations/${targetDocId}`;
+    try {
+      const [msgSnap, hoSnap] = await Promise.all([
+        getDocs(
+          query(
+            collection(db, 'workspaces', workspaceId, 'whatsappConversations', targetDocId, 'messages'),
+            where('ownerId', '==', workspaceId)
+          )
+        ),
+        getDocs(
+          query(
+            collection(db, 'workspaces', workspaceId, 'whatsappConversations', targetDocId, 'handovers'),
+            where('ownerId', '==', workspaceId)
+          )
+        )
+      ]);
+
+      const refs = [
+        ...msgSnap.docs.map((d) => d.ref),
+        ...hoSnap.docs.map((d) => d.ref),
+        doc(db, 'workspaces', workspaceId, 'whatsappConversations', targetDocId)
+      ];
+
+      for (let i = 0; i < refs.length; i += 400) {
+        const batch = writeBatch(db);
+        for (const r of refs.slice(i, i + 400)) {
+          batch.delete(r);
+        }
+        await batch.commit();
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('permission') || msg.includes('PERMISSION_DENIED')) {
+        handleFirestoreError(error, OperationType.DELETE, convPath);
+      }
+      throw error;
     }
   }
 }

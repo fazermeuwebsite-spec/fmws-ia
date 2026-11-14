@@ -1143,6 +1143,616 @@
   ],
   "whatsappConversations": [
     {
+      "id": "conv_333767429829080_5511986342981",
+      "contactPhone": "5511986342981",
+      "waId": "5511986342981",
+      "phoneNumberId": "333767429829080",
+      "conversationKey": "cY71FhvZwQf3w6BVNi2mLpLHCHL2:333767429829080:5511986342981",
+      "contactName": "Nicolas Neves (Fazer Meu Website)",
+      "clientId": "cli_1794556578360",
+      "channel": "meta_cloud",
+      "status": "human_takeover",
+      "aiPaused": true,
+      "lastMessage": "teste",
+      "lastMessageTimestamp": "2026-11-14T12:18:12+00:00",
+      "lastInboundAt": "2026-11-14T12:18:12+00:00",
+      "unreadCount": 0,
+      "assignedAgent": "Humano",
+      "tags": [
+        "WhatsApp Cloud API",
+        "Firestore"
+      ],
+      "handoverHistory": [
+        {
+          "id": "ho_1794563123024_232",
+          "action": "returned_to_ai",
+          "fromStatus": "human_takeover",
+          "toStatus": "ai_active",
+          "assignedTo": "Atendente IA",
+          "byUser": "nicolas neves",
+          "at": "2026-11-13T09:45:23.024Z"
+        },
+        {
+          "id": "ho_1794563205425_261",
+          "action": "assumed_human",
+          "fromStatus": "ai_active",
+          "toStatus": "human_takeover",
+          "assignedTo": "Humano",
+          "byUser": "nicolas neves",
+          "at": "2026-11-13T09:46:45.425Z"
+        },
+        {
+          "id": "ho_php_1794574569_3a89",
+          "action": "created",
+          "toStatus": "ai_active",
+          "assignedTo": "Atendente IA",
+          "byUser": "Webhook PHP 20i",
+          "note": "Conversa iniciada via WhatsApp Cloud API (20i PHP)",
+          "at": "2026-11-13T12:55:57+00:00"
+        },
+        {
+          "id": "ho_ai_1794575561_119b",
+          "action": "assumed_human",
+          "fromStatus": "ai_active",
+          "toStatus": "human_takeover",
+          "assignedTo": "Humano",
+          "byUser": "Atendente IA",
+          "note": "Transferência automática solicitada pelo contato ou regra comercial.",
+          "at": "2026-11-13T13:12:41+00:00"
+        },
+        {
+          "id": "ho_merge_1794626533976_226",
+          "action": "merged_duplicate",
+          "fromStatus": "human_takeover",
+          "toStatus": "human_takeover",
+          "assignedTo": "Humano",
+          "byUser": "nicolas neves",
+          "note": "Conversas unificadas (conv_1794559048031, conv_333767429829080_5511986342981 -> conv_333767429829080_5511986342981) com 27 mensagens.",
+          "at": "2026-11-14T03:22:13.976Z"
+        }
+      ],
+      "messages": [
+        {
+          "id": "msg_1794559050974_785",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "ola",
+          "timestamp": "2026-11-13T08:37:30.974Z",
+          "status": "delivered",
+          "phoneNumberId": "default",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "msg_1794559238753_281",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "oi",
+          "timestamp": "2026-11-13T08:40:38.753Z",
+          "status": "delivered",
+          "phoneNumberId": "default",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "msg_1794560438221_131",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "teste",
+          "timestamp": "2026-11-13T09:00:38.221Z",
+          "status": "failed",
+          "phoneNumberId": "default",
+          "waId": "5511986342981",
+          "errorMessage": "Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações.",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkNCMTQ3Q0MyQkMzNkFDMzkyMAA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "oi",
+          "timestamp": "2026-11-13T09:45:15.446Z",
+          "status": "sent",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkNCMTQ3Q0MyQkMzNkFDMzkyMAA=",
+          "phoneNumberId": "default",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjIyRjE2NkQ4OEQxRDYxQTI4QwA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "Olá! Vou consultar nosso catálogo oficial e te passar os valores e prazos certinhos para o seu projeto.",
+          "timestamp": "2026-11-13T09:45:29.265Z",
+          "status": "sent",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjIyRjE2NkQ4OEQxRDYxQTI4QwA=",
+          "phoneNumberId": "default",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjUwRDYwNTlBMDcyMTJBQTREMQA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "oi",
+          "timestamp": "2026-11-13T09:50:14.040Z",
+          "status": "sent",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjUwRDYwNTlBMDcyMTJBQTREMQA=",
+          "phoneNumberId": "default",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQ0EyMjcyQUY1RjQ4RjU5NkMA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "ola",
+          "timestamp": "2026-11-13T12:55:57+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQ0EyMjcyQUY1RjQ4RjU5NkMA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkQwRTgwMTVCNjQzRDM1NzRBRgA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "Olá! Vou consultar nosso catálogo oficial e te passar os valores e prazos certinhos para o seu projeto.",
+          "timestamp": "2026-11-13T12:56:30.436Z",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkQwRTgwMTVCNjQzRDM1NzRBRgA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxMkVGQzJDOURBRDJFMUNENTkA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "oi",
+          "timestamp": "2026-11-13T12:56:37+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxMkVGQzJDOURBRDJFMUNENTkA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkI5QTdGMzU4NkQ2OEVGMUY1NwA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "oi",
+          "timestamp": "2026-11-13T12:58:47.020Z",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkI5QTdGMzU4NkQ2OEVGMUY1NwA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQ0UxNDFENjkxQkRFNUYyNUQA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "ola",
+          "timestamp": "2026-11-13T12:58:53+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQ0UxNDFENjkxQkRFNUYyNUQA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQUQyODBGQjAyQjRCNTBGNjYA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "quero um site",
+          "timestamp": "2026-11-13T13:07:34+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQUQyODBGQjAyQjRCNTBGNjYA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkU4Njg3QTdDMDg2RUNDOUI5MQA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "Olá! Fico feliz em ajudar com o seu novo site. Para que eu possa te passar uma orientação precisa e alinhar o projeto, poderia me dizer qual o seu nome, o nome da sua empresa e qual o seu segmento de atuação? Além disso, você já possui domínio ou logotipo?",
+          "timestamp": "2026-11-13T13:07:46+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkU4Njg3QTdDMDg2RUNDOUI5MQA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": true
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQUZCNDNCRjk1MkUzNjE4Q0YA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "qual valor",
+          "timestamp": "2026-11-13T13:07:59+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQUZCNDNCRjk1MkUzNjE4Q0YA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjc1MDY0RjAxMUMyQzhCQzc5RgA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "O valor do projeto depende das funcionalidades e do escopo, como a quantidade de páginas ou integrações. No entanto, para a base do seu site, trabalhamos com nossa hospedagem Linux por R$ 35,00 mensais. Para eu te passar um orçamento formal para a criação, você poderia me informar o nome da sua empresa e se já possui domínio ou logotipo?",
+          "timestamp": "2026-11-13T13:08:10+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjc1MDY0RjAxMUMyQzhCQzc5RgA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": true
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2ODExMTQxQzg3NTg4MjBDM0EA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "www.fazermeuwebsite.com.br",
+          "timestamp": "2026-11-13T13:09:08+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2ODExMTQxQzg3NTg4MjBDM0EA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjJENzQyNTAwMjIyQzYzQjc2NwA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "Obrigada por compartilhar o domínio! Para que eu possa entender melhor sua necessidade e estruturar um orçamento formal para a criação do seu site, você poderia me informar o nome da sua empresa e o seu segmento de atuação? Assim, posso levar as informações corretas para nossa equipe técnica avaliar o escopo do projeto.",
+          "timestamp": "2026-11-13T13:09:30+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjJENzQyNTAwMjIyQzYzQjc2NwA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": true
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBFRkU3NzM4QTcwMEQ1MDYxOEYA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "criação de sites",
+          "timestamp": "2026-11-13T13:09:43+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBFRkU3NzM4QTcwMEQ1MDYxOEYA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkJBNTgxMzczRjhGOUY3RTcxMgA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "Entendido! Para que nossa equipe possa elaborar um orçamento formal e técnico para a criação do seu site, preciso apenas que me informe o nome da sua empresa e qual o seu segmento de atuação. Com esses dados, encaminharei o seu pedido para um de nossos especialistas analisar o escopo ideal para o seu negócio.",
+          "timestamp": "2026-11-13T13:09:53+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkJBNTgxMzczRjhGOUY3RTcxMgA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": true
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2RUE4RENCODg5NzQ3NUFDODUA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "nome da empresa fazer meu website e segmento criação de sites",
+          "timestamp": "2026-11-13T13:10:26+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2RUE4RENCODg5NzQ3NUFDODUA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxMTgzMUNGRTQwMzM3MEZBQ0QA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "esta ai?",
+          "timestamp": "2026-11-13T13:12:27+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxMTgzMUNGRTQwMzM3MEZBQ0QA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjdFQ0EwM0QzMTc5RDMzNjFBRQA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "Estou aqui sim! Como já recebi as informações da sua empresa (Fazer Meu Website) e o seu segmento (criação de sites), estou encaminhando agora mesmo todos os detalhes para o nosso time de especialistas. Eles irão analisar o escopo e entrar em contato com você em breve com uma proposta formal. Agradeço pela paciência!",
+          "timestamp": "2026-11-13T13:12:38+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjdFQ0EwM0QzMTc5RDMzNjFBRQA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": true
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxRjc2QjYzMjgxNDgxMjk4RkYA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "ola",
+          "timestamp": "2026-11-13T14:35:22+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxRjc2QjYzMjgxNDgxMjk4RkYA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBDQzYyQjU4OTExNUNERTQzMTAA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "ola",
+          "timestamp": "2026-11-13T16:02:58+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBDQzYyQjU4OTExNUNERTQzMTAA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAwRUQ5MkE4QzA2NTQ0RUE1OTUA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "oi",
+          "timestamp": "2026-11-13T19:22:03+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAwRUQ5MkE4QzA2NTQ0RUE1OTUA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjFGQUVFQjkzMzk4N0RBRUM4OQA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "oi",
+          "timestamp": "2026-11-14T03:19:14.575Z",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjFGQUVFQjkzMzk4N0RBRUM4OQA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxOTU2MzU0NEIyMTFDNTEwQjMA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "oi",
+          "timestamp": "2026-11-14T03:22:02+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxOTU2MzU0NEIyMTFDNTEwQjMA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkEzNTlEMjI5RjU4NzkxQTA1RAA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "[Template \"hello_world\"]: Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta. Thank you for taking the time to test with us.",
+          "timestamp": "2026-11-14T03:23:10.635Z",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkEzNTlEMjI5RjU4NzkxQTA1RAA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjlGRDZBOTZCOTk4QUI4MjM5OAA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "teste",
+          "timestamp": "2026-11-14T05:05:00.712Z",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjlGRDZBOTZCOTk4QUI4MjM5OAA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxM0U5QTA3NjFBRjZEMEI1MzIA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "teste",
+          "timestamp": "2026-11-14T05:05:15+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxM0U5QTA3NjFBRjZEMEI1MzIA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2M0FFODkyN0Q1MUYxNzgwREEA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "oi",
+          "timestamp": "2026-11-14T05:38:43+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2M0FFODkyN0Q1MUYxNzgwREEA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQUQ4MTk5ODUxNTE1NzVDNTcA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "oi",
+          "timestamp": "2026-11-14T11:38:36+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQUQ4MTk5ODUxNTE1NzVDNTcA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBEMzA2MERDREIyRjZFRUZDQkYA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "teste",
+          "timestamp": "2026-11-14T12:18:12+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBEMzA2MERDREIyRjZFRUZDQkYA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        }
+      ]
+    },
+    {
+      "id": "conv_333767429829080_5511953599075",
+      "contactPhone": "5511953599075",
+      "waId": "5511953599075",
+      "phoneNumberId": "333767429829080",
+      "conversationKey": "cY71FhvZwQf3w6BVNi2mLpLHCHL2:333767429829080:5511953599075",
+      "contactName": "Camila Santos",
+      "channel": "meta_cloud",
+      "status": "ai_active",
+      "aiPaused": false,
+      "lastMessage": "Perfeito, Camila! Registro feito. Como o nome da empresa é Teste, gostaria de confirmar: você já possui um domínio registrado ou precisará de auxílio com o registro? Assim que me confirmar, posso encaminhar os detalhes para prosseguirmos com a ativação da sua hospedagem.",
+      "lastMessageTimestamp": "2026-11-13T15:53:51+00:00",
+      "lastInboundAt": "2026-11-13T15:53:39+00:00",
+      "unreadCount": 0,
+      "assignedAgent": "Atendente IA",
+      "tags": [
+        "WhatsApp Cloud API",
+        "Firestore"
+      ],
+      "handoverHistory": [
+        {
+          "id": "ho_php_1794575672_2ddc",
+          "action": "created",
+          "toStatus": "ai_active",
+          "assignedTo": "Atendente IA",
+          "byUser": "Webhook PHP 20i",
+          "note": "Conversa iniciada via WhatsApp Cloud API (20i PHP)",
+          "at": "2026-11-13T13:14:22+00:00"
+        }
+      ],
+      "messages": [
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDMjQ3RDBBMjhGN0I1OTkzN0U4MzdEMzg5ODMyNTVDAA__",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Camila Santos",
+          "text": "Ola",
+          "timestamp": "2026-11-13T13:14:22+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDMjQ3RDBBMjhGN0I1OTkzN0U4MzdEMzg5ODMyNTVDAA==",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511953599075",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk1MzU5OTA3NRUCABEYEjczOEIzNTAwOEMyQ0EwNTFDQwA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "Olá, Camila! Tudo bem? Seja bem-vinda à Fazer Meu Website. Sou a IA da FMWS e estou aqui para te ajudar. Para começarmos, poderia me dizer o nome da sua empresa e qual é o seu objetivo principal hoje? Precisa de um site novo, loja virtual ou suporte com algum serviço?",
+          "timestamp": "2026-11-13T13:14:44+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABEYEjczOEIzNTAwOEMyQ0EwNTFDQwA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511953599075",
+          "aiGenerated": true
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDMTczMDRGMUY5Q0Q5MTE4MDZEODE2OTFDQjYyMzZEAA__",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Camila Santos",
+          "text": "Quero uma hospedagem para meu site",
+          "timestamp": "2026-11-13T13:15:16+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDMTczMDRGMUY5Q0Q5MTE4MDZEODE2OTFDQjYyMzZEAA==",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511953599075",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk1MzU5OTA3NRUCABEYEkE2RDZBNDE3NzJFODVEOENBNAA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "Excelente, Camila! Nossa hospedagem Linux é ideal para manter seu site rápido e estável, com o investimento de R$ 35,00 mensais. Para prosseguirmos, você já possui um domínio registrado? Além disso, poderia me informar o nome da sua empresa para que eu possa registrar seu atendimento?",
+          "timestamp": "2026-11-13T13:15:32+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABEYEkE2RDZBNDE3NzJFODVEOENBNAA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511953599075",
+          "aiGenerated": true
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDNkIzRUYwNTdENUYxRTc5OTVBRUZBN0QxMzRGOTgyAA__",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Camila Santos",
+          "text": "Teste",
+          "timestamp": "2026-11-13T15:53:39+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDNkIzRUYwNTdENUYxRTc5OTVBRUZBN0QxMzRGOTgyAA==",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511953599075",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk1MzU5OTA3NRUCABEYEkUwMUFGNzc2MEI2MjNFNTc0MwA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "Atendente IA (Fazer Meu Website)",
+          "text": "Perfeito, Camila! Registro feito. Como o nome da empresa é Teste, gostaria de confirmar: você já possui um domínio registrado ou precisará de auxílio com o registro? Assim que me confirmar, posso encaminhar os detalhes para prosseguirmos com a ativação da sua hospedagem.",
+          "timestamp": "2026-11-13T15:53:51+00:00",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABEYEkUwMUFGNzc2MEI2MjNFNTc0MwA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511953599075",
+          "aiGenerated": true
+        }
+      ]
+    },
+    {
       "status": "human_takeover",
       "assignedAgent": "Humano",
       "tags": [
@@ -1236,10 +1846,767 @@
           "byUser": "nicolas neves",
           "at": "2026-11-13T09:46:45.425Z"
         }
-      ]
+      ],
+      "phoneNumberId": "default",
+      "waId": "5511986342981",
+      "conversationKey": "cY71FhvZwQf3w6BVNi2mLpLHCHL2:default:5511986342981"
     }
   ],
   "whatsappLogs": [
+    {
+      "id": "walog_php_1794658696_1f170b",
+      "timestamp": "2026-11-14T12:18:16+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBEMzA2MERDREIyRjZFRUZDQkYA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794656321_a08a30",
+      "timestamp": "2026-11-14T11:38:41+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQUQ4MTk5ODUxNTE1NzVDNTcA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794634727_4188cc",
+      "timestamp": "2026-11-14T05:38:47+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2M0FFODkyN0Q1MUYxNzgwREEA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794632719_716526",
+      "timestamp": "2026-11-14T05:05:19+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxM0U5QTA3NjFBRjZEMEI1MzIA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794626527_f1bd45",
+      "timestamp": "2026-11-14T03:22:07+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxOTU2MzU0NEIyMTFDNTEwQjMA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794597727_2cebd2",
+      "timestamp": "2026-11-13T19:22:07+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAwRUQ5MkE4QzA2NTQ0RUE1OTUA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794585782_f6ed9c",
+      "timestamp": "2026-11-13T16:03:02+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBDQzYyQjU4OTExNUNERTQzMTAA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794585233_63ecd1",
+      "timestamp": "2026-11-13T15:53:53+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511953599075",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABEYEkUwMUFGNzc2MEI2MjNFNTc0MwA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511953599075.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794585224_9d5d47",
+      "timestamp": "2026-11-13T15:53:44+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511953599075",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDNkIzRUYwNTdENUYxRTc5OTVBRUZBN0QxMzRGOTgyAA==",
+      "summary": "Mensagem recebida de Camila Santos (+5511953599075) em conv_333767429829080_5511953599075",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794580527_fd8d78",
+      "timestamp": "2026-11-13T14:35:27+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxRjc2QjYzMjgxNDgxMjk4RkYA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575734_db5967",
+      "timestamp": "2026-11-13T13:15:34+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511953599075",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABEYEkE2RDZBNDE3NzJFODVEOENBNAA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511953599075.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575720_8f6c5c",
+      "timestamp": "2026-11-13T13:15:20+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511953599075",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDMTczMDRGMUY5Q0Q5MTE4MDZEODE2OTFDQjYyMzZEAA==",
+      "summary": "Mensagem recebida de Camila Santos (+5511953599075) em conv_333767429829080_5511953599075",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575685_7611d0",
+      "timestamp": "2026-11-13T13:14:45+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511953599075",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABEYEjczOEIzNTAwOEMyQ0EwNTFDQwA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511953599075.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575675_7b108e",
+      "timestamp": "2026-11-13T13:14:35+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511953599075",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk1MzU5OTA3NRUCABIYIEFDMjQ3RDBBMjhGN0I1OTkzN0U4MzdEMzg5ODMyNTVDAA==",
+      "summary": "Mensagem recebida de Camila Santos (+5511953599075) em conv_333767429829080_5511953599075",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575560_da7e78",
+      "timestamp": "2026-11-13T13:12:40+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjdFQ0EwM0QzMTc5RDMzNjFBRQA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511986342981.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575551_af4529",
+      "timestamp": "2026-11-13T13:12:31+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxMTgzMUNGRTQwMzM3MEZBQ0QA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575437_8e2b62",
+      "timestamp": "2026-11-13T13:10:37+00:00",
+      "source": "ai",
+      "level": "error",
+      "eventType": "ai_error",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2RUE4RENCODg5NzQ3NUFDODUA",
+      "summary": "Erro Gemini (gemini-3.1-flash-lite) no PHP 20i: Erro Gemini API (gemini-3.1-flash-lite / HTTP 503): This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+    },
+    {
+      "id": "walog_php_1794575431_7556f7",
+      "timestamp": "2026-11-13T13:10:31+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2RUE4RENCODg5NzQ3NUFDODUA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575394_575a9e",
+      "timestamp": "2026-11-13T13:09:54+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkJBNTgxMzczRjhGOUY3RTcxMgA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511986342981.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575388_623b44",
+      "timestamp": "2026-11-13T13:09:48+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBFRkU3NzM4QTcwMEQ1MDYxOEYA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575371_318e8c",
+      "timestamp": "2026-11-13T13:09:31+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjJENzQyNTAwMjIyQzYzQjc2NwA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511986342981.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575353_5c19ec",
+      "timestamp": "2026-11-13T13:09:13+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2ODExMTQxQzg3NTg4MjBDM0EA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575292_62c2f7",
+      "timestamp": "2026-11-13T13:08:12+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjc1MDY0RjAxMUMyQzhCQzc5RgA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511986342981.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575283_398872",
+      "timestamp": "2026-11-13T13:08:03+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQUZCNDNCRjk1MkUzNjE4Q0YA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575267_ea0bfc",
+      "timestamp": "2026-11-13T13:07:47+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkU4Njg3QTdDMDg2RUNDOUI5MQA=",
+      "summary": "Resposta do Atendente IA (gemini-3.1-flash-lite) enviada via Meta Cloud API na conversa conv_333767429829080_5511986342981.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794575259_f3cd29",
+      "timestamp": "2026-11-13T13:07:39+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQUQyODBGQjAyQjRCNTBGNjYA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794574742_89ec48",
+      "timestamp": "2026-11-13T12:59:02+00:00",
+      "source": "ai",
+      "level": "error",
+      "eventType": "ai_error",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQ0UxNDFENjkxQkRFNUYyNUQA",
+      "summary": "Erro Gemini (gemini-3.8-flash) no PHP 20i: Erro Gemini API (gemini-3.8-flash / HTTP 503): This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+    },
+    {
+      "id": "walog_php_1794574737_c63bb4",
+      "timestamp": "2026-11-13T12:58:57+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxQ0UxNDFENjkxQkRFNUYyNUQA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794574702581_1511",
+      "timestamp": "2026-11-13T12:58:22.581Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "php_webhook_verify",
+      "summary": "Webhook PHP oficial validado (HTTP 200, challenge confirmado).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794574700515_838",
+      "timestamp": "2026-11-13T12:58:20.515Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Conexão Meta Graph API validada: +55 11 94579-9976 (Fazer Meu Website)."
+    },
+    {
+      "id": "walog_php_1794574608_22fe4f",
+      "timestamp": "2026-11-13T12:56:48+00:00",
+      "source": "ai",
+      "level": "error",
+      "eventType": "ai_error",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxMkVGQzJDOURBRDJFMUNENTkA",
+      "summary": "Erro Gemini (gemini-3.8-flash) no PHP 20i: Erro Gemini API (gemini-3.8-flash / HTTP 503): This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+    },
+    {
+      "id": "walog_php_1794574601_7a8e1d",
+      "timestamp": "2026-11-13T12:56:41+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxMkVGQzJDOURBRDJFMUNENTkA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794574577_860d0f",
+      "timestamp": "2026-11-13T12:56:17+00:00",
+      "source": "ai",
+      "level": "error",
+      "eventType": "ai_error",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQ0EyMjcyQUY1RjQ4RjU5NkMA",
+      "summary": "Erro Gemini (gemini-3.8-flash) no PHP 20i: Erro Gemini API (gemini-3.8-flash / HTTP 503): This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+    },
+    {
+      "id": "walog_php_1794574571_052904",
+      "timestamp": "2026-11-13T12:56:11+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQ0EyMjcyQUY1RjQ4RjU5NkMA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794574538122_3975",
+      "timestamp": "2026-11-13T12:55:38.122Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "php_webhook_verify",
+      "summary": "Webhook PHP oficial validado (HTTP 200, challenge confirmado).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794574532423_9247",
+      "timestamp": "2026-11-13T12:55:32.423Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Conexão Meta Graph API validada: +55 11 94579-9976 (Fazer Meu Website)."
+    },
+    {
+      "id": "walog_php_1794574227_3a1581",
+      "timestamp": "2026-11-13T12:50:27+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBGRTEwMTlDNTExNzYxNEE4MkUA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794574068_c3d2de",
+      "timestamp": "2026-11-13T12:47:48+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBFRUYwMzUzMzQ0MDhDOTY1QTYA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794574055_4c761c",
+      "timestamp": "2026-11-13T12:47:35+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkE3MzM1RDNDQ0NFNDk2NEY5MwA=",
+      "summary": "Resposta do Atendente IA enviada via Meta Cloud API (20i PHP -> Firestore).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794574049_84a2b3",
+      "timestamp": "2026-11-13T12:47:29+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBEMzA3OTI5QTVCRDY2OTFFMDEA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794574029_347de9",
+      "timestamp": "2026-11-13T12:47:09+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkYyRTJDRTQzRTU5Nzk1RTk1NQA=",
+      "summary": "Resposta do Atendente IA enviada via Meta Cloud API (20i PHP -> Firestore).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794574009_d4acfb",
+      "timestamp": "2026-11-13T12:46:49+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA0NDdGQzIyMjc1ODg4MjE4QzIA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794573586_d0aff9",
+      "timestamp": "2026-11-13T12:39:46+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkM3QzRDNEExN0QyMDVBQzg1NQA=",
+      "summary": "Resposta do Atendente IA enviada via Meta Cloud API (20i PHP -> Firestore).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794573572_07b23c",
+      "timestamp": "2026-11-13T12:39:32+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAzOUFGQTE3MEMyRDZDOEZGNDYA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794573549_e5b739",
+      "timestamp": "2026-11-13T12:39:09+00:00",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_reply_sent",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjQ3MzY5MjMxN0RDRUY2REIzQQA=",
+      "summary": "Resposta do Atendente IA enviada via Meta Cloud API (20i PHP -> Firestore).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794573548142_6105",
+      "timestamp": "2026-11-13T12:39:08.142Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_1794559048031",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjY3NzVFREE2M0Y0OEJBM0ZCOQA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_php_1794573537_8f45e3",
+      "timestamp": "2026-11-13T12:38:57+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxNjU4QzkyNTRDNTQ5QjU3OEIA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794573109_18fedf",
+      "timestamp": "2026-11-13T12:31:49+00:00",
+      "source": "ai",
+      "level": "error",
+      "eventType": "ai_error",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyNkU5NEQwQkRGMzk3NzZFRTEA",
+      "summary": "Erro Gemini no PHP 20i: Falha cURL ao chamar Gemini API: Operation timed out after 20001 milliseconds with 0 bytes received"
+    },
+    {
+      "id": "walog_php_1794573085_70df6e",
+      "timestamp": "2026-11-13T12:31:25+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyNkU5NEQwQkRGMzk3NzZFRTEA",
+      "summary": "Mensagem recebida de Fazer Meu Website (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794573046368_5332",
+      "timestamp": "2026-11-13T12:30:46.368Z",
+      "source": "handover",
+      "level": "info",
+      "eventType": "handover_returned_to_ai",
+      "conversationId": "conv_1794562997404",
+      "summary": "Handover (returned_to_ai) por nicolas neves: status=ai_active, responsável=Atendente IA, aiPaused=false."
+    },
+    {
+      "id": "walog_1794573039237_9691",
+      "timestamp": "2026-11-13T12:30:39.237Z",
+      "source": "handover",
+      "level": "info",
+      "eventType": "handover_returned_to_ai",
+      "conversationId": "conv_1794559048031",
+      "summary": "Handover (returned_to_ai) por nicolas neves: status=ai_active, responsável=Atendente IA, aiPaused=false."
+    },
+    {
+      "id": "walog_php_1794573033_938d92",
+      "timestamp": "2026-11-13T12:30:33+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_1794562997404",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBFNDhCNTVDM0U5OEMzQUI2M0EA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794572992_a28435",
+      "timestamp": "2026-11-13T12:29:52+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_1794562997404",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA5RjJEODA4QTAyNUI5QTgzRjMA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794572981720_5797",
+      "timestamp": "2026-11-13T12:29:41.720Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_1794559048031",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjJCNzVFM0M0MDJCMjg5NTI4OAA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_php_1794572876_61ec9a",
+      "timestamp": "2026-11-13T12:27:56+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_1794562997404",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjA2NThBOTVCMjE3MzQwOEYxOUEA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_php_1794572830_49cc66",
+      "timestamp": "2026-11-13T12:27:10+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_1794562997404",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAxOUEzRkFFNjVDRjUzQ0FCRjEA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981)",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794572575999_3191",
+      "timestamp": "2026-11-13T12:22:55.999Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_1794559048031",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjBEMDIyOUQ3ODIyNTVBQjE2QQA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794571766001_3409",
+      "timestamp": "2026-11-13T12:09:26.001Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjY3RkFBRTcyQjNDOTdDNTBEMwA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794571720215_3342",
+      "timestamp": "2026-11-13T12:08:40.215Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkUzNzQyRTRBNTBBODFFMkMwRQA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794568600303_6898",
+      "timestamp": "2026-11-13T11:16:40.303Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjhGRkQ2OEQ2MzFFMkM2MjE5NgA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794568557240_6885",
+      "timestamp": "2026-11-13T11:15:57.240Z",
+      "source": "outbound",
+      "level": "error",
+      "eventType": "manual_send_failed",
+      "summary": "Falha ao enviar para +5511986342981: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
+    },
+    {
+      "id": "walog_1794563424598_9777",
+      "timestamp": "2026-11-13T09:50:24.598Z",
+      "source": "php_bridge",
+      "level": "info",
+      "eventType": "self_echo_ignored",
+      "wamid": "wamid.ECHO_1794563424594",
+      "summary": "Evento ignorado: remetente (5511999990000) corresponde ao próprio número oficial do negócio."
+    },
+    {
+      "id": "walog_1794563424591_1878",
+      "timestamp": "2026-11-13T09:50:24.591Z",
+      "source": "php_bridge",
+      "level": "info",
+      "eventType": "duplicate_wamid_skipped",
+      "wamid": "wamid.TEST_1794563424559",
+      "summary": "Evento duplicado ignorado por idempotência (wamid: wamid.TEST_1794563424559)."
+    },
+    {
+      "id": "walog_1794563424582_8577",
+      "timestamp": "2026-11-13T09:50:24.582Z",
+      "source": "security",
+      "level": "error",
+      "eventType": "bridge_hmac_rejected",
+      "summary": "Bridge PHP rejeitado: Requisição duplicada detectada (proteção anti-replay: nonce já utilizado).",
+      "httpStatus": 401
+    },
+    {
+      "id": "walog_1794563424570_6171",
+      "timestamp": "2026-11-13T09:50:24.570Z",
+      "source": "ai",
+      "level": "info",
+      "eventType": "ai_autoreply_standby",
+      "summary": "Atendente IA em espera: recebimento salvo sem resposta automática (ative aiAutoReplyOnInbound em Configurações após validar entrada)."
+    },
+    {
+      "id": "walog_1794563424570_7995",
+      "timestamp": "2026-11-13T09:50:24.570Z",
+      "source": "php_bridge",
+      "level": "warning",
+      "eventType": "firestore_server_write_pending",
+      "wamid": "wamid.TEST_1794563424559",
+      "summary": "Firestore REST servidor não gravou direto (Workspace Firebase UID ainda não vinculado no backend.); sincronia ocorrerá pelo cliente autenticado."
+    },
+    {
+      "id": "walog_1794563424569_6538",
+      "timestamp": "2026-11-13T09:50:24.569Z",
+      "source": "php_bridge",
+      "level": "info",
+      "eventType": "inbound_message",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.TEST_1794563424559",
+      "summary": "Mensagem recebida (sender=contact) de +5511988887777 persistida na conversa conv_1794563424567_862.",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794563424556_4718",
+      "timestamp": "2026-11-13T09:50:24.556Z",
+      "source": "security",
+      "level": "error",
+      "eventType": "bridge_hmac_rejected",
+      "summary": "Bridge PHP rejeitado: Assinatura HMAC X-FMWS-Signature inválida.",
+      "httpStatus": 401
+    },
     {
       "id": "walog_1794563414039_146",
       "timestamp": "2026-11-13T09:50:14.039Z",
@@ -1287,6 +2654,146 @@
       "conversationId": "conv_1794559048031",
       "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkNCMTQ3Q0MyQkMzNkFDMzkyMAA=",
       "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794563000525_9956",
+      "timestamp": "2026-11-13T09:43:20.525Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkI4NDhERjZGMzU0RDVBMzYwQQA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794562964196_6245",
+      "timestamp": "2026-11-13T09:42:44.197Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkI1RTQyQzhERDNBQUVEM0NFMgA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794562934243_5031",
+      "timestamp": "2026-11-13T09:42:14.243Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "php_webhook_verify",
+      "summary": "Webhook PHP oficial validado (HTTP 200, challenge confirmado).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794562922087_9192",
+      "timestamp": "2026-11-13T09:42:02.087Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Conexão Meta Graph API validada: +55 11 94579-9976 (Fazer Meu Website)."
+    },
+    {
+      "id": "walog_1794562873781_5513",
+      "timestamp": "2026-11-13T09:41:13.781Z",
+      "source": "outbound",
+      "level": "error",
+      "eventType": "manual_send_failed",
+      "summary": "Falha ao enviar para +5511986342981: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
+    },
+    {
+      "id": "walog_1794562522432_6174",
+      "timestamp": "2026-11-13T09:35:22.432Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkMwMzU0QjY3RDYxRjg5M0ZBQwA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794562512346_154",
+      "timestamp": "2026-11-13T09:35:12.346Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjNDN0UzRkI1Njk1MDNDMTg2QQA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794562496028_7684",
+      "timestamp": "2026-11-13T09:34:56.028Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Conexão Meta Graph API validada: +55 11 94579-9976 (Fazer Meu Website)."
+    },
+    {
+      "id": "walog_1794562489375_8743",
+      "timestamp": "2026-11-13T09:34:49.375Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "php_webhook_verify",
+      "summary": "Webhook PHP oficial validado (HTTP 200, challenge confirmado).",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794562290124_9274",
+      "timestamp": "2026-11-13T09:31:30.124Z",
+      "source": "outbound",
+      "level": "error",
+      "eventType": "manual_send_failed",
+      "summary": "Falha ao enviar para +5511986342981: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
+    },
+    {
+      "id": "walog_1794561434654_7503",
+      "timestamp": "2026-11-13T09:17:14.654Z",
+      "source": "security",
+      "level": "info",
+      "eventType": "bridge_secret_generated",
+      "summary": "Novo Bridge Secret HMAC-SHA256 gerado no backend (exibido uma única vez para copiar para o whatsapp.php)."
+    },
+    {
+      "id": "walog_1794561155684_9569",
+      "timestamp": "2026-11-13T09:12:35.684Z",
+      "source": "outbound",
+      "level": "error",
+      "eventType": "manual_send_failed",
+      "summary": "Falha ao enviar para +5511986342981: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
+    },
+    {
+      "id": "walog_1794561088653_6922",
+      "timestamp": "2026-11-13T09:11:28.653Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkNDNTE2RjQ5OTZFREI2OTQ3MAA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794561065271_8317",
+      "timestamp": "2026-11-13T09:11:05.271Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Conexão Meta Graph API validada: +55 11 94579-9976 (Fazer Meu Website)."
+    },
+    {
+      "id": "walog_1794561014747_5940",
+      "timestamp": "2026-11-13T09:10:14.747Z",
+      "source": "verify",
+      "level": "error",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Falha no teste Meta Graph API: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
+    },
+    {
+      "id": "walog_1794561004474_8763",
+      "timestamp": "2026-11-13T09:10:04.474Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "php_webhook_verify",
+      "summary": "Webhook PHP oficial validado (HTTP 200, challenge confirmado).",
+      "httpStatus": 200
     },
     {
       "id": "walog_1794560798619_1035",
@@ -1389,14 +2896,6 @@
       "eventType": "bridge_hmac_rejected",
       "httpStatus": 401,
       "summary": "Bridge PHP rejeitado: Assinatura HMAC X-FMWS-Signature inválida."
-    },
-    {
-      "id": "walog_1794560793715_1239",
-      "timestamp": "2026-11-13T09:06:33.715Z",
-      "source": "security",
-      "level": "info",
-      "eventType": "bridge_secret_generated",
-      "summary": "Novo Bridge Secret HMAC-SHA256 gerado no backend (exibido uma única vez para copiar para o whatsapp.php)."
     }
   ],
   "proposals": [],
@@ -1426,7 +2925,14 @@
       "requiresApprovalForOutreach": false,
       "name": "Atendente IA FMWS",
       "instructions": "Você é a Atendente IA oficial da Fazer Meu Website (FMWS SALES AI).\nSuas atribuições:\n1. Responder prontamente e com cordialidade clientes que entram em contato pelo WhatsApp.\n2. Identificar a necessidade: novo site, loja virtual, reformulação de site antigo ou hospedagem/manutenção.\n3. Consultar a tabela de preços oficial de serviços.\n4. Qualificar o lead fazendo perguntas objetivas: segmento, se já tem domínio ou logotipo, prazo desejado.\n5. Quando o cliente pedir orçamento formal ou se demonstrar pronto para fechar negócio, oferecer envio de proposta e transferir para atendimento humano.\n6. Se o cliente for cliente ativo com dúvida técnica, registrar o chamado e avisar que o time de suporte responderá em minutos.\n7. Mantenha mensagens curtas e naturais, adequadas ao WhatsApp.",
-      "status": "ativo"
+      "status": "ativo",
+      "provider": "gemini",
+      "fallbackEnabled": false,
+      "fallbackProvider": "deepseek",
+      "fallbackModel": "deepseek-flash",
+      "diagnostics": {
+        "errorCounts": {}
+      }
     },
     {
       "rules": [
@@ -1450,7 +2956,14 @@
       "personality": "Analítico, cirúrgico, focado em dados técnicos objetivos e argumentos comerciais sobre presença digital.",
       "id": "prospector",
       "status": "ativo",
-      "name": "Prospector IA FMWS"
+      "name": "Prospector IA FMWS",
+      "provider": "gemini",
+      "fallbackEnabled": false,
+      "fallbackProvider": "deepseek",
+      "fallbackModel": "deepseek-flash",
+      "diagnostics": {
+        "errorCounts": {}
+      }
     }
   ],
   "integrations": {
@@ -1484,6 +2997,30 @@
       "model": "gemini-3.8-flash",
       "requestsToday": 12,
       "quotaLimit": 1500,
+      "status": "conectado",
+      "availableModels": [
+        "gemini-4-hydrogen",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash"
+      ]
+    },
+    "deepseek": {
+      "enabled": true,
+      "baseUrl": "https://api.deepseek.com",
+      "model": "deepseek-flash",
+      "apiKey": "",
+      "requestsToday": 0,
+      "quotaLimit": 1500,
+      "timeoutMs": 25000,
+      "maxTokens": 1200,
+      "tokensUsedToday": 0,
+      "availableModels": [
+        "deepseek-flash",
+        "deepseek-v4-pro",
+        "deepseek-chat",
+        "deepseek-reasoner"
+      ],
+      "usageHistory": [],
       "status": "conectado"
     }
   },
@@ -1537,6 +3074,13 @@
       "role": "admin",
       "createdAt": "2026-11-13T09:47:17.393Z",
       "expiresAt": 1795168037393
+    },
+    {
+      "sid": "sess_45d7d0788f64e2448e41d718d042f9e2907a69b98f0c205c",
+      "userId": "usr_admin",
+      "role": "admin",
+      "createdAt": "2026-11-14T14:21:37.478Z",
+      "expiresAt": 1795270897478
     }
   ],
   "crmStages": [
@@ -1609,5 +3153,5 @@
       "color": "emerald"
     }
   ],
-  "lastBackup": "2026-11-13T09:50:14.040Z"
+  "lastBackup": "2026-11-14T14:42:10.316Z"
 }

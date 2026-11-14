@@ -326,13 +326,58 @@ export interface SupportTicket {
   notes: Array<{ author: string; text: string; createdAt: string }>;
 }
 
+export type AIProvider = 'gemini' | 'deepseek';
+
+export interface DeepSeekUsageLog {
+  id: string;
+  timestamp: string;
+  agentId?: 'atendente' | 'prospector' | 'test' | string;
+  provider: 'deepseek';
+  model: string;
+  status: 'sucesso' | 'erro' | 'sem_saldo' | 'limite_atingido';
+  httpStatus?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  latencyMs?: number;
+  errorSummary?: string;
+}
+
+export interface AIAgentDiagnostics {
+  lastProvider?: AIProvider;
+  lastModel?: string;
+  lastStatus?: 'sucesso' | 'erro' | 'sem_saldo' | 'limite_atingido' | 'nao_configurado';
+  lastHttpStatus?: number;
+  lastErrorCode?: string;
+  lastErrorMessage?: string;
+  lastLatencyMs?: number;
+  lastPromptTokens?: number;
+  lastCompletionTokens?: number;
+  lastTotalTokens?: number;
+  totalTokensConsumed?: number;
+  lastExecutedAt?: string;
+  fallbackUsedLastTime?: boolean;
+  fallbackTriggeredCount?: number;
+  errorCounts?: {
+    '401'?: number;
+    '402'?: number;
+    '403'?: number;
+    '429'?: number;
+    '5xx'?: number;
+  };
+}
+
 export interface AIAgentConfig {
   id: 'atendente' | 'prospector';
   name: string;
   role: string;
   avatar: string;
   status: 'ativo' | 'pausado' | 'em_treinamento' | 'nao_configurado' | 'erro';
+  provider?: AIProvider;
   model: string;
+  fallbackEnabled?: boolean;
+  fallbackProvider?: AIProvider;
+  fallbackModel?: string;
   personality: string;
   instructions: string;
   rules: string[];
@@ -344,6 +389,7 @@ export interface AIAgentConfig {
     tasksCompleted: number;
     accuracyScore: number;
   };
+  diagnostics?: AIAgentDiagnostics;
 }
 
 export interface SystemIntegrations {
@@ -395,7 +441,26 @@ export interface SystemIntegrations {
     requestsToday: number;
     quotaLimit: number;
     hasEnvKey?: boolean;
+    availableModels?: string[];
     status: 'conectado' | 'desconectado' | 'nao_configurado' | 'limite_atingido' | 'erro';
+  };
+  deepseek: {
+    enabled: boolean;
+    baseUrl: string;
+    model: string;
+    apiKey?: string;
+    hasApiKey?: boolean;
+    apiKeyHint?: string;
+    hasEnvKey?: boolean;
+    requestsToday: number;
+    quotaLimit: number;
+    timeoutMs: number;
+    maxTokens: number;
+    tokensUsedToday: number;
+    availableModels?: string[];
+    modelsUpdatedAt?: string;
+    usageHistory?: DeepSeekUsageLog[];
+    status: 'conectado' | 'desconectado' | 'nao_configurado' | 'sem_saldo' | 'limite_atingido' | 'erro';
   };
 }
 

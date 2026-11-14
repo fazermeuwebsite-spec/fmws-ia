@@ -24,6 +24,8 @@ require_once __DIR__ . '/lib/QueueAndStorage.php';
 require_once __DIR__ . '/lib/FirestoreRestClient.php';
 require_once __DIR__ . '/lib/MetaCloudClient.php';
 require_once __DIR__ . '/lib/GeminiClient.php';
+require_once __DIR__ . '/lib/DeepSeekClient.php';
+require_once __DIR__ . '/lib/AIProviderRouter.php';
 require_once __DIR__ . '/lib/WhatsAppProcessor.php';
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -157,11 +159,28 @@ try {
         FIREBASE_WORKSPACE_ID,
         $storage->getCacheDir()
     );
+    $deepseek = new DeepSeekClient(
+        defined('DEEPSEEK_API_KEY') ? (string)DEEPSEEK_API_KEY : '',
+        defined('DEEPSEEK_BASE_URL') ? (string)DEEPSEEK_BASE_URL : 'https://api.deepseek.com',
+        defined('DEEPSEEK_DEFAULT_MODEL') ? (string)DEEPSEEK_DEFAULT_MODEL : 'deepseek-flash',
+        defined('DEEPSEEK_TIMEOUT_SEC') ? (int)DEEPSEEK_TIMEOUT_SEC : 25,
+        defined('DEEPSEEK_MAX_TOKENS') ? (int)DEEPSEEK_MAX_TOKENS : 1200
+    );
+    $aiRouter = new AIProviderRouter(
+        $gemini,
+        $deepseek,
+        $firestore,
+        FIREBASE_WORKSPACE_ID,
+        $storage->getCacheDir(),
+        FIREBASE_PROJECT_ID,
+        FIREBASE_DATABASE_ID,
+        defined('FMWS_VAULT_APP_ID') ? (string)FMWS_VAULT_APP_ID : '1:1007158864919:web:bd856b3d8eb53759848052'
+    );
     $processor = new WhatsAppProcessor(
         $storage,
         $firestore,
         $meta,
-        $gemini,
+        $aiRouter,
         FIREBASE_WORKSPACE_ID
     );
 

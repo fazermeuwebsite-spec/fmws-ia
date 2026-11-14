@@ -19,20 +19,20 @@ final class WhatsAppProcessor
     private QueueAndStorage $storage;
     private FirestoreRestClient $firestore;
     private MetaCloudClient $meta;
-    private GeminiClient $gemini;
+    private GeminiClient|AIProviderRouter $aiClient;
     private string $workspaceId;
 
     public function __construct(
         QueueAndStorage $storage,
         FirestoreRestClient $firestore,
         MetaCloudClient $meta,
-        GeminiClient $gemini,
+        GeminiClient|AIProviderRouter $aiClient,
         string $workspaceId
     ) {
         $this->storage = $storage;
         $this->firestore = $firestore;
         $this->meta = $meta;
-        $this->gemini = $gemini;
+        $this->aiClient = $aiClient;
         $this->workspaceId = trim($workspaceId);
     }
 
@@ -694,22 +694,26 @@ final class WhatsAppProcessor
             }
             usort($history, static fn($a, $b) => $a['ts'] <=> $b['ts']);
 
-            $aiReply = $this->gemini->generateAtendenteReply($nextName, $text, $history);
+            $aiReply = $this->aiClient->generateAtendenteReply($nextName, $text, $history);
+            $providerUsed = (string)($aiReply['providerUsed'] ?? 'gemini');
+            $providerLabel = ($providerUsed === 'deepseek') ? 'DeepSeek' : 'Gemini';
             $modelUsed = (string)($aiReply['modelUsed'] ?? GEMINI_DEFAULT_MODEL);
+            $fallbackNote = !empty($aiReply['fallbackUsed']) ? ' [fallback]' : '';
             if (!empty($aiReply['error']) && $aiReply['replyText'] === '') {
                 $this->recordFirestoreLog(
                     'ai',
                     'error',
                     'ai_error',
-                    'Erro Gemini (' . $modelUsed . ') no PHP 20i: ' . $aiReply['error'],
+                    'Erro ' . $providerLabel . ' (' . $modelUsed . $fallbackNote . ') no PHP 20i: ' . $aiReply['error'],
                     $convId,
                     $effectivePid,
-                    $wamid
+                    $wamid,
+                    isset($aiReply['httpStatus']) ? (int)$aiReply['httpStatus'] : null
                 );
                 return ['duplicate' => false, 'aiSent' => false];
             }
 
-            // REVALIDA no Firestore se um operador pausou/assumiu durante a chamada ao Gemini
+            // REVALIDA no Firestore se um operador pausou/assumiu durante a chamada à IA
             $freshConv = $this->firestore->getDocument($convPath);
             if (is_array($freshConv) && (!empty($freshConv['aiPaused']) || (($freshConv['status'] ?? 'ai_active') !== 'ai_active'))) {
                 $this->recordFirestoreLog(
@@ -776,13 +780,21 @@ final class WhatsAppProcessor
                     ['lastMessage', 'lastMessageTimestamp', 'unreadCount', 'updatedAt']
                 );
 
+                $metricsNote = '';
+                if (!empty($aiReply['latencyMs'])) {
+                    $metricsNote .= ' ' . (int)$aiReply['latencyMs'] . 'ms';
+                }
+                if (!empty($aiReply['totalTokens'])) {
+                    $metricsNote .= ' ' . (int)$aiReply['totalTokens'] . 'tok';
+                }
+
                 $this->recordFirestoreLog(
                     'ai',
                     $sendRes['ok'] ? 'info' : 'error',
                     $sendRes['ok'] ? 'ai_reply_sent' : 'ai_send_failed',
                     $sendRes['ok']
-                        ? 'Resposta do Atendente IA (' . $modelUsed . ') enviada via Meta Cloud API na conversa ' . $convId . '.'
-                        : ('Falha ao enviar resposta da IA (' . $modelUsed . ') pela Meta API: ' . ($replyErr ?: 'erro')),
+                        ? 'Resposta do Atendente IA (' . $providerLabel . ' • ' . $modelUsed . $fallbackNote . $metricsNote . ') enviada via Meta Cloud API na conversa ' . $convId . '.'
+                        : ('Falha ao enviar resposta da IA (' . $providerLabel . ' • ' . $modelUsed . ') pela Meta API: ' . ($replyErr ?: 'erro')),
                     $convId,
                     $effectivePid,
                     $replyWamid,
