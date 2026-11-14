@@ -38,6 +38,11 @@ final class DeepSeekClient
         return rtrim($trimmed !== '' ? $trimmed : 'https://api.deepseek.com', '/');
     }
 
+    public function hasApiKey(?string $vaultApiKey = null): bool
+    {
+        return $this->resolveApiKey($vaultApiKey) !== '';
+    }
+
     private function resolveApiKey(?string $vaultApiKey): string
     {
         if ($this->configApiKey !== '' && strpos($this->configApiKey, 'COLE_AQUI') === false) {
@@ -88,14 +93,19 @@ final class DeepSeekClient
             ? max(64, min(8192, (int)$deepseekConfig['maxTokens']))
             : $this->maxTokens;
 
-        $modelName = trim((string)(
-            $overrideModel
-            ?? ($atendenteConfig['model'] ?? '')
-            ?: ($deepseekConfig['model'] ?? '')
-            ?: $this->defaultModel
-        ));
+        $rawOverride = trim((string)($overrideModel ?? ''));
+        $agentModel = trim((string)($atendenteConfig['model'] ?? ''));
+        $globalDsModel = trim((string)($deepseekConfig['model'] ?? ''));
+
+        $modelName = '';
+        foreach ([$rawOverride, $agentModel, $globalDsModel, $this->defaultModel] as $candidate) {
+            if ($candidate !== '' && stripos($candidate, 'gemini') !== 0) {
+                $modelName = $candidate;
+                break;
+            }
+        }
         if ($modelName === '') {
-            $modelName = $this->defaultModel;
+            $modelName = 'deepseek-chat';
         }
 
         $apiKey = $this->resolveApiKey($vaultApiKey);
@@ -153,34 +163,87 @@ IMPORTANTE: Retorne a resposta em formato JSON estrito:
 }
 PROMPT;
 
-        $messages = [
-            ['role' => 'system', 'content' => $systemPrompt]
-        ];
-
+        $rawHistoryMessages = [];
         $recentHistory = array_slice($chatHistory, -10);
         foreach ($recentHistory as $h) {
             $msgText = trim((string)($h['text'] ?? ''));
             if ($msgText === '') {
                 continue;
             }
-            $messages[] = [
+            $rawHistoryMessages[] = [
                 'role' => (($h['sender'] ?? '') === 'contact') ? 'user' : 'assistant',
                 'content' => $msgText
             ];
         }
 
-        $lastIdx = count($messages) - 1;
         $userInstruction = "Mensagem de {$contactName}: {$incomingText}\n\nResponda exclusivamente em formato JSON válido.";
-        if ($lastIdx >= 1 && $messages[$lastIdx]['role'] === 'user' && $messages[$lastIdx]['content'] === trim($incomingText)) {
-            $messages[$lastIdx]['content'] = $userInstruction;
+        $lastHistIdx = count($rawHistoryMessages) - 1;
+        if (
+            $lastHistIdx >= 0 &&
+            $rawHistoryMessages[$lastHistIdx]['role'] === 'user' &&
+            $rawHistoryMessages[$lastHistIdx]['content'] === trim($incomingText)
+        ) {
+            $rawHistoryMessages[$lastHistIdx]['content'] = $userInstruction;
         } else {
-            $messages[] = ['role' => 'user', 'content' => $userInstruction];
+            $rawHistoryMessages[] = ['role' => 'user', 'content' => $userInstruction];
         }
+
+        // Garante alternância limpa user/assistant (necessário para deepseek-reasoner / APIs estritas)
+        $coalesced = [];
+        foreach ($rawHistoryMessages as $hm) {
+            if (empty($coalesced)) {
+                if ($hm['role'] === 'assistant') {
+                    // Evita começar histórico logo após system com turno assistant
+                    continue;
+                }
+                $coalesced[] = $hm;
+                continue;
+            }
+            $prevIdx = count($coalesced) - 1;
+            if ($coalesced[$prevIdx]['role'] === $hm['role']) {
+                $coalesced[$prevIdx]['content'] .= "\n" . $hm['content'];
+            } else {
+                $coalesced[] = $hm;
+            }
+        }
+        if (empty($coalesced)) {
+            $coalesced[] = ['role' => 'user', 'content' => $userInstruction];
+        }
+
+        $messages = array_merge([['role' => 'system', 'content' => $systemPrompt]], $coalesced);
 
         $isReasoner = preg_match('/reasoner|r1/i', $modelName) === 1;
         $url = $baseUrl . '/chat/completions';
 
         $attempt = $this->executeChatRequest($url, $apiKey, $modelName, $messages, $maxTokens, $timeoutSec, !$isReasoner, !$isReasoner);
+
+        // Fallback transparente se um modelo preset (ex: deepseek-flash / deepseek-v4-pro) retornar HTTP 400 "Model Not Exist"
+        if (!$attempt['ok'] && ($attempt['httpStatus'] ?? 0) === 400) {
+            $lowErr = strtolower((string)($attempt['rawErr'] ?? ''));
+            $isModelNotExist = strpos($lowErr, 'model') !== false && (
+                strpos($lowErr, 'not exist') !== false ||
+                strpos($lowErr, 'does not exist') !== false ||
+                strpos($lowErr, 'invalid') !== false ||
+                strpos($lowErr, 'unknown') !== false ||
+                strpos($lowErr, 'not found') !== false
+            );
+            if ($isModelNotExist && $modelName !== 'deepseek-chat' && $modelName !== 'deepseek-reasoner') {
+                $modelName = preg_match('/pro|v4|reason|r1/i', $modelName) === 1
+                    ? 'deepseek-reasoner'
+                    : 'deepseek-chat';
+                $isReasoner = preg_match('/reasoner|r1/i', $modelName) === 1;
+                $attempt = $this->executeChatRequest($url, $apiKey, $modelName, $messages, $maxTokens, $timeoutSec, !$isReasoner, !$isReasoner);
+
+                if (!$attempt['ok'] && ($attempt['httpStatus'] ?? 0) === 400 && $modelName === 'deepseek-reasoner') {
+                    $retryModelErr = strtolower((string)($attempt['rawErr'] ?? ''));
+                    if (strpos($retryModelErr, 'model') !== false) {
+                        $modelName = 'deepseek-chat';
+                        $isReasoner = false;
+                        $attempt = $this->executeChatRequest($url, $apiKey, $modelName, $messages, $maxTokens, $timeoutSec, true, true);
+                    }
+                }
+            }
+        }
 
         if (!$attempt['ok'] && ($attempt['httpStatus'] ?? 0) === 400 && !$isReasoner) {
             $lowErr = strtolower((string)($attempt['rawErr'] ?? ''));
@@ -209,7 +272,21 @@ PROMPT;
 
         $data = $attempt['data'];
         $rawText = trim((string)($data['choices'][0]['message']['content'] ?? ''));
-        $parsed = json_decode($rawText, true);
+        if ($rawText === '') {
+            return [
+                'replyText' => '',
+                'shouldHandover' => true,
+                'providerUsed' => 'deepseek',
+                'modelUsed' => $modelName,
+                'httpStatus' => $attempt['httpStatus'] ?? 200,
+                'latencyMs' => $attempt['latencyMs'] ?? 0,
+                'transient' => true,
+                'error' => 'DeepSeek API retornou conteúdo vazio para ' . $modelName . '.'
+            ];
+        }
+
+        $cleanedJson = preg_replace('/^```(?:json)?\s*|\s*```$/im', '', $rawText) ?? $rawText;
+        $parsed = json_decode(trim($cleanedJson), true);
         if (!is_array($parsed) && preg_match('/\{[\s\S]*\}/', $rawText, $m)) {
             $parsed = json_decode($m[0], true);
         }

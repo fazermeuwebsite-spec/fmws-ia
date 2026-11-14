@@ -35,7 +35,12 @@ final class GeminiClient
         $this->cacheDir = rtrim($cacheDir, '/\\');
     }
 
-    private function loadBucketWithShortCache(string $bucketKey, int $ttlSec = 60): array
+    public function hasApiKey(): bool
+    {
+        return $this->apiKey !== '' && strpos($this->apiKey, 'COLE_AQUI') === false;
+    }
+
+    private function loadBucketWithShortCache(string $bucketKey, int $ttlSec = 10): array
     {
         $cacheFile = $this->cacheDir . '/bucket_' . QueueAndStorage::sanitizeId($bucketKey) . '.json';
         if (is_file($cacheFile)) {
@@ -126,12 +131,22 @@ final class GeminiClient
             ];
         }
 
-        $modelName = is_array($atendenteConfig) && !empty($atendenteConfig['model'])
+        $safeGlobalModel = (
+            stripos($globalModel, 'gemini-') === 0 &&
+            strpos($globalModel, 'gemini-2.') !== 0 &&
+            strpos($globalModel, 'gemini-1.') !== 0
+        ) ? $globalModel : $this->defaultModel;
+
+        $candidateModel = is_array($atendenteConfig) && !empty($atendenteConfig['model'])
             ? trim((string)$atendenteConfig['model'])
-            : $globalModel;
-        if ($modelName === '' || strpos($modelName, 'gemini-2.') === 0 || strpos($modelName, 'gemini-1.') === 0) {
-            $modelName = $this->defaultModel;
-        }
+            : $safeGlobalModel;
+
+        $modelName = (
+            $candidateModel !== '' &&
+            stripos($candidateModel, 'gemini-') === 0 &&
+            strpos($candidateModel, 'gemini-2.') !== 0 &&
+            strpos($candidateModel, 'gemini-1.') !== 0
+        ) ? $candidateModel : $safeGlobalModel;
 
         // Monta resumo do catálogo de serviços igual ao CRM
         if (!empty($services)) {

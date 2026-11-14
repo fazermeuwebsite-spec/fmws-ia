@@ -11,6 +11,7 @@ import {
   FileText 
 } from 'lucide-react';
 import { Proposal } from '../types';
+import { formatDateBR } from '../utils/dateFormat';
 
 interface ProposalPrintModalProps {
   proposal: Proposal;
@@ -84,10 +85,10 @@ export const ProposalPrintModal: React.FC<ProposalPrintModalProps> = ({
               <div className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Proposta Comercial</div>
               <div className="text-lg font-bold font-mono text-[#B88E1E]">{proposal.code}</div>
               <div className="text-xs text-slate-600 mt-1">
-                Data de Emissão: <strong>{new Date(proposal.createdAt).toLocaleDateString('pt-BR')}</strong>
+                Data de Emissão: <strong>{formatDateBR(proposal.createdAt)}</strong>
               </div>
               <div className="text-xs text-slate-600">
-                Validade: <strong>{proposal.validUntil}</strong>
+                Validade: <strong>{formatDateBR(proposal.validUntil)}</strong>
               </div>
             </div>
           </div>

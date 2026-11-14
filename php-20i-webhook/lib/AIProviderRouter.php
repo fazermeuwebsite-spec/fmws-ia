@@ -126,9 +126,10 @@ final class AIProviderRouter
      */
     public function generateAtendenteReply(string $contactName, string $incomingText, array $chatHistory): array
     {
-        $agents = $this->loadBucketWithShortCache('aiAgents', 60);
-        $services = $this->loadBucketWithShortCache('services', 60);
-        $integrationsCfg = $this->loadBucketWithShortCache('integrationsConfig', 60);
+        // TTL curto (10s) para refletir alterações de provedor/modelo/pausa rapidamente na 20i
+        $agents = $this->loadBucketWithShortCache('aiAgents', 10);
+        $services = $this->loadBucketWithShortCache('services', 30);
+        $integrationsCfg = $this->loadBucketWithShortCache('integrationsConfig', 10);
 
         $atendenteConfig = null;
         foreach ($agents as $ag) {
@@ -150,13 +151,32 @@ final class AIProviderRouter
         }
 
         $cfgRoot = is_array($integrationsCfg[0] ?? null) ? $integrationsCfg[0] : [];
+        $geminiConfig = is_array($cfgRoot['gemini'] ?? null) ? $cfgRoot['gemini'] : [];
         $deepseekConfig = is_array($cfgRoot['deepseek'] ?? null) ? $cfgRoot['deepseek'] : [];
         $vault = $this->decryptCloudVault(isset($cfgRoot['encryptedVault']) ? (string)$cfgRoot['encryptedVault'] : null);
         $vaultDeepSeekKey = isset($vault['deepseekApiKey']) ? (string)$vault['deepseekApiKey'] : null;
 
-        $primaryProvider = (is_array($atendenteConfig) && (($atendenteConfig['provider'] ?? 'gemini') === 'deepseek'))
+        $geminiEnabled = array_key_exists('enabled', $geminiConfig) ? (bool)$geminiConfig['enabled'] : true;
+        $geminiReady = $geminiEnabled && $this->gemini->hasApiKey();
+
+        $hasDeepSeekKey = $this->deepseek->hasApiKey($vaultDeepSeekKey);
+        $deepseekEnabled = array_key_exists('enabled', $deepseekConfig)
+            ? (bool)$deepseekConfig['enabled']
+            : $hasDeepSeekKey;
+        $deepseekReady = $deepseekEnabled && $hasDeepSeekKey;
+
+        $configuredPrimary = (is_array($atendenteConfig) && (($atendenteConfig['provider'] ?? 'gemini') === 'deepseek'))
             ? 'deepseek'
             : 'gemini';
+
+        // Se o provedor primário salvo estiver desativado/sem chave e o outro provedor estiver pronto,
+        // roteia automaticamente para o provedor ativo (espelha a lógica do backend Node do CRM).
+        $primaryProvider = $configuredPrimary;
+        if ($configuredPrimary === 'gemini' && !$geminiReady && $deepseekReady) {
+            $primaryProvider = 'deepseek';
+        } elseif ($configuredPrimary === 'deepseek' && !$deepseekReady && $geminiReady) {
+            $primaryProvider = 'gemini';
+        }
 
         if ($primaryProvider === 'deepseek') {
             $primaryResult = $this->deepseek->generateAtendenteReply(
@@ -174,21 +194,22 @@ final class AIProviderRouter
             $primaryResult['transient'] = !empty($primaryResult['error']);
         }
 
-        if (empty($primaryResult['error']) || $primaryResult['replyText'] !== '') {
+        if (empty($primaryResult['error']) && trim((string)($primaryResult['replyText'] ?? '')) !== '') {
             $primaryResult['fallbackUsed'] = false;
             return $primaryResult;
         }
 
-        // Fallback opcional: SOMENTE se expressamente ativado no agente e falha transitória/indisponibilidade
+        // Fallback opcional: SOMENTE se expressamente ativado no agente, provedor secundário pronto e falha transitória
         $fallbackEnabled = is_array($atendenteConfig) && !empty($atendenteConfig['fallbackEnabled']);
         $fallbackProvider = is_array($atendenteConfig) ? (string)($atendenteConfig['fallbackProvider'] ?? '') : '';
         $fallbackModel = is_array($atendenteConfig) && !empty($atendenteConfig['fallbackModel'])
             ? trim((string)$atendenteConfig['fallbackModel'])
             : null;
+        $isFallbackReady = ($fallbackProvider === 'deepseek' && $deepseekReady) || ($fallbackProvider === 'gemini' && $geminiReady);
 
         if (
             $fallbackEnabled &&
-            ($fallbackProvider === 'gemini' || $fallbackProvider === 'deepseek') &&
+            $isFallbackReady &&
             $fallbackProvider !== $primaryProvider &&
             !empty($primaryResult['transient'])
         ) {
@@ -207,9 +228,11 @@ final class AIProviderRouter
                 $secondaryResult = $this->gemini->generateAtendenteReply($contactName, $incomingText, $chatHistory);
                 $secondaryResult['providerUsed'] = 'gemini';
             }
-            $secondaryResult['fallbackUsed'] = true;
-            $secondaryResult['primaryError'] = $primaryResult['error'] ?? null;
-            return $secondaryResult;
+            if (empty($secondaryResult['error']) && trim((string)($secondaryResult['replyText'] ?? '')) !== '') {
+                $secondaryResult['fallbackUsed'] = true;
+                $secondaryResult['primaryError'] = $primaryResult['error'] ?? null;
+                return $secondaryResult;
+            }
         }
 
         $primaryResult['fallbackUsed'] = false;

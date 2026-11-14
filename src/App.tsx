@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, AlertCircle, X, MessageSquare, ArrowRight } from 'lucide-react';
+import { RefreshCw, AlertCircle, X, MessageSquare, ArrowRight, Database } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
 import { LoginScreen } from './components/LoginScreen';
@@ -109,6 +109,7 @@ export default function App() {
   const [firestoreOnline, setFirestoreOnline] = useState<boolean>(true);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'disconnected' | 'syncing' | 'synced' | 'error'>('disconnected');
   const [cloudRestoreComplete, setCloudRestoreComplete] = useState(false);
+  const [dismissedCloudBanner, setDismissedCloudBanner] = useState(false);
   const [dataLoadedNonce, setDataLoadedNonce] = useState(0);
   const dataReadyRef = useRef(false);
   const restoredFromFirestoreRef = useRef(false);
@@ -356,10 +357,40 @@ export default function App() {
     await runner;
   }, [currentUser]);
 
+  const reconcileWithFirestore = useCallback(
+    async (userPerms: string[], userRole?: string) => {
+      if (userRole !== 'admin') {
+        setCloudRestoreComplete(true);
+        return;
+      }
+      restoringFromCloudRef.current = true;
+      setCloudSyncStatus('syncing');
+      try {
+        const cloudSnapshot = await loadSnapshotFromFirestore();
+        const result = await api.reconcileCloudSnapshot(cloudSnapshot);
+        if (result.action === 'restored_from_cloud') {
+          await loadAllData(userPerms, userRole);
+          setCloudSyncStatus('synced');
+        } else if (result.action === 'push_to_cloud') {
+          await syncNowToFirestore();
+        } else {
+          setCloudSyncStatus('synced');
+        }
+        setCloudRestoreComplete(true);
+      } catch (err) {
+        console.error('Firestore reconcile failed:', err);
+        setCloudSyncStatus('error');
+        // Keep cloudRestoreComplete false so stale local disk never overwrites Firestore!
+      } finally {
+        restoringFromCloudRef.current = false;
+      }
+    },
+    [loadAllData, syncNowToFirestore]
+  );
+
   const handleConnectFirebase = useCallback(async () => {
     try {
       setCloudSyncStatus('syncing');
-      restoredFromFirestoreRef.current = true;
       const fbUser = await signInFirebaseWithGoogle();
       try {
         const idToken = await fbUser.getIdToken();
@@ -370,15 +401,13 @@ export default function App() {
       } catch {
         // Sync can still proceed even if account linking fails
       }
-      const snapshot = await api.exportCloudSnapshot();
-      await syncSnapshotToFirestore(snapshot);
-      setCloudRestoreComplete(true);
-      setCloudSyncStatus('synced');
+      restoredFromFirestoreRef.current = true;
+      await reconcileWithFirestore(permissions, currentUser?.role);
     } catch (err: any) {
       setCloudSyncStatus('error');
       setGlobalError(err?.message || 'Não foi possível vincular sua conta Google ao Firestore.');
     }
-  }, []);
+  }, [reconcileWithFirestore, permissions, currentUser?.role]);
 
   // Automatically sync persisted CRM changes to Firestore whenever Firebase Google session is linked
   // (WhatsApp changes are synced incrementally via direct Firestore mutations + onSnapshot listeners)
@@ -417,6 +446,38 @@ export default function App() {
     syncNowToFirestore
   ]);
 
+  // Flush pending Firestore sync when tab hides or page unloads
+  useEffect(() => {
+    if (
+      !currentUser ||
+      currentUser.role !== 'admin' ||
+      !firebaseUser?.emailVerified ||
+      !cloudRestoreComplete
+    ) {
+      return;
+    }
+    const flushSync = () => {
+      if (
+        !restoringFromCloudRef.current &&
+        dataReadyRef.current &&
+        firebaseAuth.currentUser?.emailVerified
+      ) {
+        void syncNowToFirestore();
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushSync();
+      }
+    };
+    window.addEventListener('pagehide', flushSync);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('pagehide', flushSync);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [currentUser, firebaseUser?.emailVerified, cloudRestoreComplete, syncNowToFirestore]);
+
   useEffect(() => {
     if (!currentUser) {
       loadedSessionKeyRef.current = null;
@@ -428,7 +489,7 @@ export default function App() {
     loadAllData(permissions, currentUser.role);
   }, [currentUser, permissions, loadAllData]);
 
-  // Auto-link active Google Firebase session & auto-restore empty container DB from Firestore
+  // Auto-link active Google Firebase session & unconditionally reconcile local DB against Firestore
   useEffect(() => {
     if (!currentUser || !firebaseUser?.emailVerified || dataLoadedNonce === 0 || !dataReadyRef.current) {
       return;
@@ -450,111 +511,13 @@ export default function App() {
     if (restoredFromFirestoreRef.current) return;
     restoredFromFirestoreRef.current = true;
 
-    if (currentUser.role !== 'admin') {
-      setCloudRestoreComplete(true);
-      return;
-    }
-
-    const isLocalEmpty =
-      leads.length === 0 &&
-      clients.length === 0 &&
-      prospects.length === 0 &&
-      proposals.length === 0 &&
-      projects.length === 0 &&
-      financial.length === 0 &&
-      supportTickets.length === 0 &&
-      whatsappConversations.length === 0 &&
-      services.length === 0;
-
-    const hasAnyLocalIntegrationSecret = Boolean(
-      integrations.googlePlaces.hasApiKey ||
-        integrations.metaCloud.hasAccessToken ||
-        integrations.metaCloud.hasWebhookVerifyToken ||
-        integrations.metaCloud.hasBridgeSecret ||
-        integrations.asaas.hasApiKey ||
-        integrations.deepseek?.hasApiKey
-    );
-
-    const needsIntegrationSecretRestore = !hasAnyLocalIntegrationSecret;
-
-    const needsUserCredentialsRestore =
-      currentUser.role === 'admin' && !currentUser.hasPassword;
-
-    if (!isLocalEmpty && !needsIntegrationSecretRestore && !needsUserCredentialsRestore) {
-      setCloudRestoreComplete(true);
-      return;
-    }
-
-    restoringFromCloudRef.current = true;
-    loadSnapshotFromFirestore()
-      .then(async (snapshot) => {
-        const hasAnyCloudBuckets = Object.values(snapshot.buckets || {}).some(
-          (arr) => Array.isArray(arr) && arr.length > 0
-        );
-        const hasCloudUsers = Array.isArray(snapshot.users) && snapshot.users.length > 1;
-        if (isLocalEmpty && (hasAnyCloudBuckets || hasCloudUsers)) {
-          await api.restoreCloudSnapshot(snapshot.buckets, snapshot.users, { onlyFillMissing: false });
-          await loadAllData(permissions, currentUser.role);
-          setCloudSyncStatus('synced');
-        } else if (!isLocalEmpty && (needsIntegrationSecretRestore || needsUserCredentialsRestore)) {
-          const partialBuckets: Record<string, any[]> = {};
-          if (
-            needsIntegrationSecretRestore &&
-            Array.isArray(snapshot.buckets?.integrationsConfig) &&
-            snapshot.buckets.integrationsConfig[0]?.encryptedVault
-          ) {
-            partialBuckets.integrationsConfig = snapshot.buckets.integrationsConfig;
-          }
-          const hasCloudUserHashes =
-            needsUserCredentialsRestore &&
-            Array.isArray(snapshot.users) &&
-            snapshot.users.some((u: any) => typeof u?.passwordHash === 'string' && u.passwordHash.length >= 10);
-
-          if (Object.keys(partialBuckets).length > 0 || hasCloudUserHashes) {
-            await api.restoreCloudSnapshot(
-              partialBuckets,
-              hasCloudUserHashes ? snapshot.users : undefined,
-              { onlyFillMissing: true }
-            );
-            if (Object.keys(partialBuckets).length > 0) {
-              setIntegrations(await api.getIntegrations());
-            }
-            if (hasCloudUserHashes) {
-              const freshUsers = await api.getUsers();
-              setUsers(freshUsers);
-              const me = freshUsers.find((u) => u.id === currentUser.id);
-              if (me) setCurrentUser(me);
-            }
-            setCloudSyncStatus('synced');
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        restoringFromCloudRef.current = false;
-        setCloudRestoreComplete(true);
-      });
+    void reconcileWithFirestore(permissions, currentUser.role);
   }, [
     currentUser,
     firebaseUser,
     dataLoadedNonce,
-    leads.length,
-    clients.length,
-    prospects.length,
-    proposals.length,
-    projects.length,
-    financial.length,
-    supportTickets.length,
-    whatsappConversations.length,
-    services.length,
-    integrations.googlePlaces.hasApiKey,
-    integrations.metaCloud.hasAccessToken,
-    integrations.metaCloud.hasWebhookVerifyToken,
-    integrations.metaCloud.hasBridgeSecret,
-    integrations.asaas.hasApiKey,
-    integrations.deepseek?.hasApiKey,
     permissions,
-    loadAllData
+    reconcileWithFirestore
   ]);
 
   // Real-time WhatsApp WebSocket + SSE fallback subscription
@@ -1336,6 +1299,16 @@ export default function App() {
     handleScanWhatsAppDuplicates();
   }, [currentUser, canReadWhatsApp, firebaseUser?.emailVerified, firebaseUser?.uid, currentTab, handleScanWhatsAppDuplicates]);
 
+  const handleProspectsChange = useCallback(
+    (updater: (prev: ProspectCompany[]) => ProspectCompany[]) => {
+      setProspects(updater);
+      if (!restoringFromCloudRef.current && cloudRestoreComplete) {
+        void syncNowToFirestore();
+      }
+    },
+    [cloudRestoreComplete, syncNowToFirestore]
+  );
+
   // Show loading screen during session check
   if (authChecking) {
     return (
@@ -1421,6 +1394,9 @@ export default function App() {
     try {
       const updated = await api.updateLead(leadId, { status: newStatus });
       setLeads((prev) => prev.map((l) => (l.id === leadId ? updated : l)));
+      if (!restoringFromCloudRef.current) {
+        void syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao mover lead no funil.');
     }
@@ -1430,6 +1406,9 @@ export default function App() {
     try {
       await api.deleteLead(leadId);
       setLeads((prev) => prev.filter((l) => l.id !== leadId));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao excluir lead.');
     }
@@ -1460,6 +1439,9 @@ export default function App() {
           ).catch(() => {});
         }
       }
+      if (!restoringFromCloudRef.current) {
+        void syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao aprovar abordagem comercial.');
     }
@@ -1489,6 +1471,9 @@ export default function App() {
       const created = await api.createClient(newClientData);
       setClients((prev) => [created, ...prev]);
       setCurrentTab('clients');
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao converter lead em cliente.');
     }
@@ -1771,6 +1756,9 @@ export default function App() {
     try {
       await api.deleteClient(clientId);
       setClients((prev) => prev.filter((c) => c.id !== clientId));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao excluir cliente.');
     }
@@ -1795,6 +1783,9 @@ export default function App() {
       if (res.proposal) {
         setProposals((prev) => prev.map((p) => (p.id === proposalId ? res.proposal : p)));
       }
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao aprovar proposta.');
     }
@@ -1804,6 +1795,9 @@ export default function App() {
     try {
       await api.deleteProposal(id);
       setProposals((prev) => prev.filter((p) => p.id !== id));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao excluir proposta.');
     }
@@ -1832,6 +1826,9 @@ export default function App() {
     try {
       const updated = await api.updateProject(projectId, { stage });
       setProjects((prev) => prev.map((p) => (p.id === projectId ? updated : p)));
+      if (!restoringFromCloudRef.current) {
+        void syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao mover etapa do projeto.');
     }
@@ -1844,6 +1841,9 @@ export default function App() {
     try {
       const updated = await api.updateProject(projectId, payload);
       setProjects((prev) => prev.map((p) => (p.id === projectId ? updated : p)));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao atualizar projeto.');
       throw err;
@@ -1854,6 +1854,9 @@ export default function App() {
     try {
       await api.deleteProject(projectId);
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao excluir projeto.');
     }
@@ -1882,6 +1885,9 @@ export default function App() {
         paymentDate: status === 'pago' ? new Date().toISOString().substring(0, 10) : undefined
       });
       setFinancial((prev) => prev.map((f) => (f.id === id ? updated : f)));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao atualizar status financeiro.');
     }
@@ -1891,6 +1897,9 @@ export default function App() {
     try {
       await api.deleteFinancial(id);
       setFinancial((prev) => prev.filter((f) => f.id !== id));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao excluir lançamento.');
     }
@@ -1929,6 +1938,9 @@ export default function App() {
         resolvedAt: status === 'resolvido' ? new Date().toISOString() : undefined
       });
       setSupportTickets((prev) => prev.map((t) => (t.id === ticketId ? updated : t)));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao atualizar chamado.');
     }
@@ -1948,6 +1960,9 @@ export default function App() {
       ];
       const updated = await api.updateSupportTicket(ticketId, { notes: updatedNotes });
       setSupportTickets((prev) => prev.map((t) => (t.id === ticketId ? updated : t)));
+      if (!restoringFromCloudRef.current) {
+        await syncNowToFirestore();
+      }
     } catch (err) {
       reportError(err, 'Falha ao adicionar nota ao chamado.');
     }
@@ -1986,7 +2001,7 @@ export default function App() {
   const handleUpdateIntegrations = async (data: any) => {
     const updated = await api.updateIntegrations(data);
     setIntegrations(updated);
-    if (data?.gemini?.syncAgents || data?.deepseek?.syncAgents) {
+    if (data?.gemini !== undefined || data?.deepseek !== undefined) {
       try {
         const freshAgents = await api.getAIAgents();
         setAiAgents(freshAgents);
@@ -2005,6 +2020,12 @@ export default function App() {
 
   const handleIntegrationsUpdated = async (updated: SystemIntegrations) => {
     setIntegrations(updated);
+    try {
+      const freshAgents = await api.getAIAgents();
+      setAiAgents(freshAgents);
+    } catch {
+      // ignore transient refresh failure
+    }
     if (
       !restoringFromCloudRef.current &&
       currentUser?.role === 'admin' &&
@@ -2175,6 +2196,57 @@ export default function App() {
 
         {/* Workspace Body */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          {currentUser.role === 'admin' &&
+            firebaseAuthReady &&
+            !firebaseUser?.emailVerified &&
+            !dismissedCloudBanner && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/35 text-amber-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Database size={15} className="text-[#D4A72C] shrink-0" />
+                  <span>
+                    Sincronização automática em nuvem (Firestore) está pendente. Conecte sua conta Google para restaurar suas últimas alterações após reinicializações e salvar mudanças automaticamente.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleConnectFirebase}
+                    className="px-3 py-1 rounded-lg bg-gradient-to-r from-[#D4A72C] to-[#B88E1E] text-slate-950 font-bold text-[11px] hover:brightness-110 cursor-pointer"
+                  >
+                    Conectar & Restaurar Nuvem
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedCloudBanner(true)}
+                    className="text-amber-300 hover:text-white p-1 cursor-pointer"
+                    aria-label="Dispensar aviso de nuvem"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+          {currentUser.role === 'admin' &&
+            firebaseUser?.emailVerified &&
+            cloudSyncStatus === 'error' && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/35 text-rose-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <AlertCircle size={15} className="shrink-0" />
+                  <span>
+                    Falha ao sincronizar com o Firestore. Para evitar sobrescrever seus dados na nuvem, a sincronização automática foi pausada.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void reconcileWithFirestore(permissions, currentUser.role)}
+                  className="px-3 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 font-bold text-[11px] cursor-pointer"
+                >
+                  Reconciliar Agora
+                </button>
+              </div>
+            )}
+
           {globalError && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -2238,7 +2310,7 @@ export default function App() {
               integrations={integrations}
               existingLeads={leads}
               currentUserName={currentUser.name}
-              onProspectsChange={setProspects}
+              onProspectsChange={handleProspectsChange}
               onImportLeadToCrm={handleSaveLead}
               onOpenSettings={hasPerm('settings.read') ? () => setCurrentTab('settings') : undefined}
             />
@@ -2394,6 +2466,9 @@ export default function App() {
               currentUser={currentUser}
               initialTab={settingsInitialTab}
               firebaseWorkspaceId={firebaseUser?.emailVerified ? firebaseUser.uid : ''}
+              firebaseUser={firebaseUser}
+              cloudSyncStatus={cloudSyncStatus}
+              onConnectFirebase={handleConnectFirebase}
               firestoreWhatsAppLogs={firestoreLogs}
               onUpdateIntegrations={handleUpdateIntegrations}
               onIntegrationsUpdated={handleIntegrationsUpdated}

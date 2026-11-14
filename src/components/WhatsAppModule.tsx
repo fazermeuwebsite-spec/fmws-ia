@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { WhatsAppConversation, SystemIntegrations, Lead, Client } from '../types';
 import type { WhatsAppDuplicateGroupPreview } from '../firebase';
+import { formatDateTimeBR } from '../utils/dateFormat';
 import { api } from '../services/api';
 
 interface WhatsAppModuleProps {
@@ -868,7 +869,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
               ) : (
                 [...activeConv.handoverHistory].reverse().map((item) => (
                   <div key={item.id} className="text-[10px] font-mono text-slate-300 flex flex-wrap items-center gap-2 border-b border-slate-900 pb-1 last:border-b-0">
-                    <span className="text-slate-500">{new Date(item.at).toLocaleString('pt-BR')}</span>
+                    <span className="text-slate-500">{formatDateTimeBR(item.at, { includeSeconds: true })}</span>
                     <span className="px-1.5 rounded bg-slate-800 text-[#D4A72C] uppercase">{item.action}</span>
                     <span>por <strong>{item.byUser}</strong></span>
                     <span className="text-slate-400">({item.fromStatus} → {item.toStatus} • {item.assignedTo})</span>
@@ -1473,7 +1474,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
                               Última: <span className="text-slate-200">{thread.lastMessage || '(sem texto)'}</span>
                             </div>
                             <div className="text-[10px] text-slate-500">
-                              Status: {thread.status} {thread.aiPaused ? '• IA Pausada' : '• IA Ativa'} • {new Date(thread.lastMessageTimestamp).toLocaleString('pt-BR')}
+                              Status: {thread.status} {thread.aiPaused ? '• IA Pausada' : '• IA Ativa'} • {formatDateTimeBR(thread.lastMessageTimestamp, { includeSeconds: true })}
                             </div>
                           </div>
                         ))}
@@ -1523,12 +1524,7 @@ export const WhatsAppModule: React.FC<WhatsAppModuleProps> = ({
                                   <span className="text-slate-200 break-words">{m.text}</span>
                                 </div>
                                 <span className="text-slate-500 font-mono shrink-0">
-                                  {new Date(m.timestamp).toLocaleString('pt-BR', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  {formatDateTimeBR(m.timestamp)}
                                 </span>
                               </div>
                             ))}

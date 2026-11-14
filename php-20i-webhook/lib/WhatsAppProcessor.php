@@ -658,6 +658,17 @@ final class WhatsAppProcessor
                 $aiPaused ||
                 $nextStatus !== 'ai_active'
             ) {
+                if ($aiPaused || $nextStatus !== 'ai_active') {
+                    $this->recordFirestoreLog(
+                        'ai',
+                        'info',
+                        'ai_skipped_paused',
+                        'Atendente IA não respondeu automaticamente porque a conversa está em status=' . $nextStatus . ($aiPaused ? ' (aiPaused=true)' : '') . '.',
+                        $convId,
+                        $effectivePid,
+                        $wamid
+                    );
+                }
                 return ['duplicate' => false, 'aiSent' => false];
             }
 
@@ -697,14 +708,15 @@ final class WhatsAppProcessor
             $aiReply = $this->aiClient->generateAtendenteReply($nextName, $text, $history);
             $providerUsed = (string)($aiReply['providerUsed'] ?? 'gemini');
             $providerLabel = ($providerUsed === 'deepseek') ? 'DeepSeek' : 'Gemini';
-            $modelUsed = (string)($aiReply['modelUsed'] ?? GEMINI_DEFAULT_MODEL);
+            $modelUsed = (string)($aiReply['modelUsed'] ?? ($providerUsed === 'deepseek' ? 'deepseek-chat' : GEMINI_DEFAULT_MODEL));
             $fallbackNote = !empty($aiReply['fallbackUsed']) ? ' [fallback]' : '';
-            if (!empty($aiReply['error']) && $aiReply['replyText'] === '') {
+            if (!empty($aiReply['error']) || trim((string)($aiReply['replyText'] ?? '')) === '') {
+                $errDetail = (string)($aiReply['error'] ?? 'Resposta vazia retornada pelo provedor de IA.');
                 $this->recordFirestoreLog(
                     'ai',
                     'error',
                     'ai_error',
-                    'Erro ' . $providerLabel . ' (' . $modelUsed . $fallbackNote . ') no PHP 20i: ' . $aiReply['error'],
+                    'Erro ' . $providerLabel . ' (' . $modelUsed . $fallbackNote . ') no PHP 20i: ' . $errDetail,
                     $convId,
                     $effectivePid,
                     $wamid,

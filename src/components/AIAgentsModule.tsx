@@ -24,6 +24,7 @@ import {
 import { AIAgentConfig, AIProvider, Lead, SystemIntegrations } from '../types';
 import { api } from '../services/api';
 import type { FirebaseUser } from '../firebase';
+import { formatDateTimeBR } from '../utils/dateFormat';
 
 interface AIAgentsModuleProps {
   agents: AIAgentConfig[];
@@ -71,6 +72,12 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
 
   const loadedAgentIdRef = React.useRef<string | null>(null);
   const isDirtyRef = React.useRef<boolean>(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+
+  const markDirty = (dirty: boolean) => {
+    isDirtyRef.current = dirty;
+    setHasUnsavedChanges(dirty);
+  };
 
   const [savingConfig, setSavingConfig] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState<string | null>(null);
@@ -141,7 +148,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
   useEffect(() => {
     if (!activeAgent) {
       loadedAgentIdRef.current = null;
-      isDirtyRef.current = false;
+      markDirty(false);
       setEditingProvider('gemini');
       setEditingModel('gemini-4-hydrogen');
       setEditingFallbackEnabled(false);
@@ -166,7 +173,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
           : 'deepseek';
 
       loadedAgentIdRef.current = activeAgent.id;
-      isDirtyRef.current = false;
+      markDirty(false);
       setEditingProvider(prov);
       setEditingModel(activeAgent.model || getDefaultModelForProvider(prov));
       setEditingFallbackEnabled(Boolean(activeAgent.fallbackEnabled));
@@ -184,13 +191,13 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
 
   const handleSelectAgent = (id: 'atendente' | 'prospector') => {
     if (id !== selectedAgentId) {
-      isDirtyRef.current = false;
+      markDirty(false);
       setSelectedAgentId(id);
     }
   };
 
   const handleProviderChange = (nextProvider: AIProvider) => {
-    isDirtyRef.current = true;
+    markDirty(true);
     setEditingProvider(nextProvider);
     setEditingModel(getDefaultModelForProvider(nextProvider));
     const nextFallback: AIProvider = nextProvider === 'deepseek' ? 'gemini' : 'deepseek';
@@ -227,32 +234,44 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
     }
   };
 
-  const handleSaveConfig = async () => {
-    if (!activeAgent) return;
-    setSavingConfig(true);
-    setAgentFeedback(null);
+  const persistAgentConfig = async (targetAgent: AIAgentConfig) => {
+    const resolvedModel = editingModel.trim() || getDefaultModelForProvider(editingProvider);
+    const resolvedFallbackModel =
+      editingFallbackModel.trim() || getDefaultModelForProvider(editingFallbackProvider);
+    markDirty(false);
     try {
-      isDirtyRef.current = false;
-      await onUpdateAgent(activeAgent.id, {
+      await onUpdateAgent(targetAgent.id, {
         provider: editingProvider,
-        model: editingModel.trim() || getDefaultModelForProvider(editingProvider),
+        model: resolvedModel,
         fallbackEnabled: editingFallbackEnabled,
         fallbackProvider: editingFallbackProvider,
-        fallbackModel: editingFallbackModel.trim() || getDefaultModelForProvider(editingFallbackProvider),
+        fallbackModel: resolvedFallbackModel,
         instructions: editingInstructions,
         personality: editingPersonality,
         rules: editingRules,
         autoReplyThreshold: editingThreshold,
         requiresApprovalForOutreach: editingRequireApproval
       });
+    } catch (err) {
+      markDirty(true);
+      throw err;
+    }
+    return { provider: editingProvider, model: resolvedModel };
+  };
+
+  const handleSaveConfig = async () => {
+    if (!activeAgent) return;
+    setSavingConfig(true);
+    setAgentFeedback(null);
+    try {
+      const saved = await persistAgentConfig(activeAgent);
       setAgentFeedback({
         type: 'success',
         text: firebaseUser?.emailVerified
-          ? `Configurações de ${activeAgent.name} (${editingProvider === 'deepseek' ? 'DeepSeek' : 'Gemini'} • ${editingModel}) salvas no servidor e sincronizadas com o Firebase Firestore.`
-          : `Configurações de ${activeAgent.name} (${editingProvider === 'deepseek' ? 'DeepSeek' : 'Gemini'} • ${editingModel}) salvas no servidor!`
+          ? `Configurações de ${activeAgent.name} (${saved.provider === 'deepseek' ? 'DeepSeek' : 'Gemini'} • ${saved.model}) salvas no servidor e sincronizadas com o Firebase Firestore.`
+          : `Configurações de ${activeAgent.name} (${saved.provider === 'deepseek' ? 'DeepSeek' : 'Gemini'} • ${saved.model}) salvas no servidor!`
       });
     } catch (err: any) {
-      isDirtyRef.current = true;
       setAgentFeedback({
         type: 'error',
         text: err?.message || 'Erro ao salvar configurações do agente.'
@@ -262,10 +281,24 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
     }
   };
 
+  const syncUnsavedBeforeAction = async (targetAgentId: 'atendente' | 'prospector') => {
+    if (activeAgent && activeAgent.id === targetAgentId && isDirtyRef.current) {
+      try {
+        await persistAgentConfig(activeAgent);
+      } catch (err: any) {
+        if (err?.status === 403) {
+          return;
+        }
+        throw err;
+      }
+    }
+  };
+
   const handleTestConnection = async (agentId: 'atendente' | 'prospector') => {
     setTestingAgentId(agentId);
     setAgentFeedback(null);
     try {
+      await syncUnsavedBeforeAction(agentId);
       const res = await api.testAIAgent(agentId);
       onRefreshAgentsAndIntegrations(res.agent, res.integrations);
       setAgentFeedback({
@@ -289,6 +322,9 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
     setTogglingStatus(agent.id);
     setAgentFeedback(null);
     try {
+      if (nextStatus === 'ativo') {
+        await syncUnsavedBeforeAction(agent.id);
+      }
       await onUpdateAgent(agent.id, { status: nextStatus });
       setAgentFeedback({
         type: 'success',
@@ -307,13 +343,13 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
   const handleAddRule = () => {
     const trimmed = newRuleText.trim();
     if (!trimmed) return;
-    isDirtyRef.current = true;
+    markDirty(true);
     setEditingRules((prev) => [...prev, trimmed]);
     setNewRuleText('');
   };
 
   const handleRemoveRule = (index: number) => {
-    isDirtyRef.current = true;
+    markDirty(true);
     setEditingRules((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -329,6 +365,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
     setAgentFeedback(null);
 
     try {
+      await syncUnsavedBeforeAction('atendente');
       const res = await api.simulateAtendenteAI({
         contactName: simContactName.trim() || 'Cliente Teste',
         message: text,
@@ -371,6 +408,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
     setAgentFeedback(null);
 
     try {
+      await syncUnsavedBeforeAction('prospector');
       const res = await api.testProspectorAudit({
         companyName: auditCompany.trim(),
         segment: auditSegment.trim(),
@@ -395,26 +433,85 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
     }
   };
 
-  const getStatusMeta = (status?: string) => {
-    switch (status) {
-      case 'online':
+  const getProviderHealth = (provider: AIProvider) => {
+    if (provider === 'deepseek') {
+      const ds = integrations?.deepseek;
+      const hasKey = Boolean(ds?.hasApiKey || ds?.hasEnvKey);
+      const enabled = Boolean(ds?.enabled);
+      const status = ds?.status || 'nao_configurado';
+      if (!hasKey) {
+        return { ready: false, hasKey: false, enabled, status, label: 'DeepSeek sem API Key', shortLabel: 'Sem chave' };
+      }
+      if (!enabled) {
+        return { ready: false, hasKey: true, enabled: false, status, label: 'DeepSeek desativado em Configurações', shortLabel: 'API Desativada' };
+      }
+      if (status === 'sem_saldo') {
+        return { ready: false, hasKey: true, enabled: true, status, label: 'DeepSeek sem saldo (HTTP 402)', shortLabel: 'Sem saldo' };
+      }
+      if (status === 'limite_atingido') {
+        return { ready: false, hasKey: true, enabled: true, status, label: 'Cota diária DeepSeek atingida', shortLabel: 'Limite atingido' };
+      }
+      if (status === 'erro') {
+        return { ready: false, hasKey: true, enabled: true, status, label: 'Erro na API DeepSeek', shortLabel: 'Erro na API' };
+      }
+      return { ready: true, hasKey: true, enabled: true, status: 'conectado', label: 'DeepSeek conectado', shortLabel: 'Conectado' };
+    }
+
+    const gem = integrations?.gemini;
+    const hasKey = Boolean(gem?.hasEnvKey);
+    const enabled = Boolean(gem?.enabled);
+    const status = gem?.status || 'nao_configurado';
+    if (!hasKey) {
+      return { ready: false, hasKey: false, enabled, status, label: 'GEMINI_API_KEY ausente nos Secrets', shortLabel: 'Sem chave' };
+    }
+    if (!enabled) {
+      return { ready: false, hasKey: true, enabled: false, status, label: 'Gemini desativado em Configurações', shortLabel: 'API Desativada' };
+    }
+    if (status === 'limite_atingido') {
+      return { ready: false, hasKey: true, enabled: true, status, label: 'Cota diária Gemini atingida', shortLabel: 'Limite atingido' };
+    }
+    if (status === 'erro') {
+      return { ready: false, hasKey: true, enabled: true, status, label: 'Erro na API Gemini', shortLabel: 'Erro na API' };
+    }
+    return { ready: true, hasKey: true, enabled: true, status: 'conectado', label: 'Gemini conectado', shortLabel: 'Conectado' };
+  };
+
+  const getStatusMeta = (agent: AIAgentConfig, displayedProvider: AIProvider) => {
+    const health = getProviderHealth(displayedProvider);
+    if (agent.status === 'pausado') {
+      return {
+        label: 'Pausado',
+        badge: 'bg-slate-800 text-slate-300 border border-slate-700',
+        isActive: false
+      };
+    }
+    if (!health.ready) {
+      const warnTone =
+        health.status === 'sem_saldo' || health.status === 'limite_atingido'
+          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30';
+      return {
+        label: health.shortLabel,
+        badge: warnTone,
+        isActive: false
+      };
+    }
+    switch (agent.status) {
       case 'ativo':
-      case 'conectado':
         return {
-          label: status === 'online' ? 'Online' : status === 'ativo' ? 'Ativo' : 'Conectado',
+          label: 'Ativo',
           badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
           isActive: true
         };
       case 'em_treinamento':
-      case 'em_execucao':
         return {
-          label: status === 'em_treinamento' ? 'Em treinamento' : 'Em execução',
+          label: 'Em treinamento',
           badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
           isActive: true
         };
-      case 'pausado':
+      case 'nao_configurado':
         return {
-          label: 'Pausado',
+          label: 'Não configurado',
           badge: 'bg-slate-800 text-slate-300 border border-slate-700',
           isActive: false
         };
@@ -426,9 +523,9 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
         };
       default:
         return {
-          label: 'Não configurado',
-          badge: 'bg-slate-800 text-slate-300 border border-slate-700',
-          isActive: false
+          label: 'Ativo',
+          badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+          isActive: true
         };
     }
   };
@@ -576,8 +673,17 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {safeAgents.map((agent) => {
             const isSelected = activeAgent?.id === agent.id;
-            const statusMeta = getStatusMeta(agent.status);
-            const agentProvider: AIProvider = agent.provider === 'deepseek' ? 'deepseek' : 'gemini';
+            const agentProvider: AIProvider =
+              isSelected && hasUnsavedChanges
+                ? editingProvider
+                : agent.provider === 'deepseek'
+                ? 'deepseek'
+                : 'gemini';
+            const agentModelName =
+              isSelected && hasUnsavedChanges
+                ? editingModel || getDefaultModelForProvider(agentProvider)
+                : agent.model || getDefaultModelForProvider(agentProvider);
+            const statusMeta = getStatusMeta(agent, agentProvider);
             return (
               <div
                 key={agent.id}
@@ -609,7 +715,8 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                           {statusMeta.label}
                         </span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[#D4A72C]">
-                          {agentProvider === 'deepseek' ? 'DeepSeek' : 'Gemini'} • {agent.model}
+                          {agentProvider === 'deepseek' ? 'DeepSeek' : 'Gemini'} • {agentModelName}
+                          {isSelected && hasUnsavedChanges ? ' (não salvo)' : ''}
                         </span>
                       </div>
                       <p className="text-xs text-[#D4A72C] font-medium mt-0.5">{agent.role}</p>
@@ -741,8 +848,32 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
         </div>
       )}
 
-      {/* Interactive Testing Sandbox (Real Gemini Execution) */}
-      {activeAgent && (
+      {/* Interactive Testing Sandbox (Real AI Provider Execution) */}
+      {activeAgent && (() => {
+        const displayProvider: AIProvider = editingProvider;
+        const displayProviderLabel = displayProvider === 'deepseek' ? 'DeepSeek' : 'Gemini';
+        const displayModel = editingModel || getDefaultModelForProvider(displayProvider);
+        const engineHealth = getProviderHealth(displayProvider);
+        const isPaused = activeAgent.status === 'pausado';
+        const lastProv = activeAgent.diagnostics?.lastProvider;
+        const lastModel = activeAgent.diagnostics?.lastModel;
+        const lastStatus = activeAgent.diagnostics?.lastStatus;
+
+        const motorBadgeClass = isPaused
+          ? 'bg-slate-900 border-slate-700 text-slate-300'
+          : !engineHealth.ready
+          ? engineHealth.status === 'sem_saldo' || engineHealth.status === 'limite_atingido'
+            ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+            : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300';
+
+        const motorBadgeText = isPaused
+          ? `Agente pausado • ${displayProviderLabel} • ${displayModel}`
+          : !engineHealth.ready
+          ? `Motor indisponível (${engineHealth.shortLabel}): ${displayProviderLabel} • ${displayModel}`
+          : `Motor ativo: ${displayProviderLabel} • ${displayModel}`;
+
+        return (
         <div className="p-5 rounded-xl bg-[#11141E] border border-[#D4A72C]/30 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
             <div>
@@ -754,13 +885,26 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 {activeAgent.id === 'atendente'
-                  ? `Envie uma mensagem simulada de cliente para validar a resposta real do provedor selecionado (${(activeAgent.provider || 'gemini') === 'deepseek' ? 'DeepSeek' : 'Google Gemini'}) com base no catálogo e instruções.`
-                  : `Informe uma empresa e site para testar a auditoria HTTP real e a geração de pitch consultivo via ${(activeAgent.provider || 'gemini') === 'deepseek' ? 'DeepSeek' : 'Google Gemini'}.`}
+                  ? `Envie uma mensagem simulada de cliente para validar a resposta real do provedor selecionado (${displayProvider === 'deepseek' ? 'DeepSeek' : 'Google Gemini'}) com base no catálogo e instruções.`
+                  : `Informe uma empresa e site para testar a auditoria HTTP real e a geração de pitch consultivo via ${displayProvider === 'deepseek' ? 'DeepSeek' : 'Google Gemini'}.`}
               </p>
             </div>
-            <span className="text-[10px] font-mono px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-300 shrink-0">
-              Motor ativo: {(activeAgent.provider || 'gemini') === 'deepseek' ? 'DeepSeek' : 'Gemini'} • {activeAgent.model || getDefaultModelForProvider(activeAgent.provider || 'gemini')}
-            </span>
+            <div className="flex flex-col sm:items-end gap-1 shrink-0">
+              <span
+                className={`text-[10px] font-mono px-2.5 py-1 rounded border ${motorBadgeClass}`}
+                title={engineHealth.label}
+              >
+                {motorBadgeText}
+                {hasUnsavedChanges ? ' • (alteração pendente)' : ''}
+                {editingFallbackEnabled ? ` • Fallback: ${editingFallbackProvider === 'deepseek' ? 'DeepSeek' : 'Gemini'}` : ''}
+              </span>
+              {lastModel && (
+                <span className="text-[10px] font-mono text-slate-400">
+                  Última exec. real: {lastProv === 'deepseek' ? 'DeepSeek' : 'Gemini'} • {lastModel} ({lastStatus || 'ok'}
+                  {activeAgent.diagnostics?.fallbackUsedLastTime ? ' • fallback' : ''})
+                </span>
+              )}
+            </div>
           </div>
 
           {activeAgent.id === 'atendente' ? (
@@ -947,12 +1091,13 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Agent Instructions, Provider/Model Selection, Fallback & Diagnostics */}
       {activeAgent && (
         <div className="p-5 rounded-xl bg-[#11141E] border border-slate-800 space-y-5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Settings size={16} className="text-[#D4A72C]" />
@@ -962,6 +1107,17 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                 Escolha o provedor e modelo exclusivos deste agente sem alterar seu histórico, catálogo de serviços ou instruções operacionais.
               </p>
             </div>
+            {hasUnsavedChanges && (
+              <button
+                type="button"
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="px-3.5 py-1.5 rounded-lg bg-[#D4A72C] hover:bg-[#b88e1e] text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {savingConfig && <RefreshCw size={12} className="animate-spin" />}
+                <span>{savingConfig ? 'Aplicando...' : 'Aplicar Motor & Alterações'}</span>
+              </button>
+            )}
           </div>
 
           {/* Per-agent AI Provider & Model Selector */}
@@ -979,11 +1135,11 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                 </select>
                 <p className="text-[11px] text-slate-400 mt-1">
                   {editingProvider === 'deepseek'
-                    ? integrations?.deepseek?.hasApiKey
-                      ? `DeepSeek configurado (${integrations.deepseek.status}).`
+                    ? integrations?.deepseek?.hasApiKey || integrations?.deepseek?.hasEnvKey
+                      ? `DeepSeek: ${getProviderHealth('deepseek').label}.`
                       : 'Configure a DeepSeek API Key em Configurações → DeepSeek API.'
                     : integrations?.gemini?.hasEnvKey
-                    ? `Google Gemini configurado (${integrations.gemini.status}).`
+                    ? `Google Gemini: ${getProviderHealth('gemini').label}.`
                     : 'Configure GEMINI_API_KEY nos Secrets do servidor.'}
                 </p>
               </div>
@@ -1006,14 +1162,18 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                 <select
                   value={editingModel}
                   onChange={(e) => {
-                    isDirtyRef.current = true;
+                    markDirty(true);
                     setEditingModel(e.target.value);
                   }}
                   className="w-full bg-[#151926] border border-slate-700 focus:border-[#D4A72C] outline-none rounded-lg p-2.5 text-white font-mono"
                 >
                   {getModelsForProvider(editingProvider).map((m) => (
                     <option key={m} value={m}>
-                      {m}
+                      {m === 'gemini-4-hydrogen'
+                        ? 'gemini-4-hydrogen (Recomendado)'
+                        : m === 'gemini-3.8-flash'
+                        ? 'gemini-3.8-flash (Legado)'
+                        : m}
                     </option>
                   ))}
                   {editingModel && !getModelsForProvider(editingProvider).includes(editingModel) && (
@@ -1040,7 +1200,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                     type="checkbox"
                     checked={editingFallbackEnabled}
                     onChange={(e) => {
-                      isDirtyRef.current = true;
+                      markDirty(true);
                       setEditingFallbackEnabled(e.target.checked);
                     }}
                     className="accent-[#D4A72C] w-4 h-4"
@@ -1056,7 +1216,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                     <select
                       value={editingFallbackProvider}
                       onChange={(e) => {
-                        isDirtyRef.current = true;
+                        markDirty(true);
                         const nextFb = e.target.value as AIProvider;
                         setEditingFallbackProvider(nextFb);
                         setEditingFallbackModel(getDefaultModelForProvider(nextFb));
@@ -1073,7 +1233,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                     <select
                       value={editingFallbackModel}
                       onChange={(e) => {
-                        isDirtyRef.current = true;
+                        markDirty(true);
                         setEditingFallbackModel(e.target.value);
                       }}
                       className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2 text-white font-mono"
@@ -1099,7 +1259,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                 type="text"
                 value={editingPersonality}
                 onChange={(e) => {
-                  isDirtyRef.current = true;
+                  markDirty(true);
                   setEditingPersonality(e.target.value);
                 }}
                 className="w-full bg-[#151926] border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#D4A72C]"
@@ -1117,7 +1277,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                   max={100}
                   value={editingThreshold}
                   onChange={(e) => {
-                    isDirtyRef.current = true;
+                    markDirty(true);
                     setEditingThreshold(Number(e.target.value));
                   }}
                   className="w-full accent-[#D4A72C] mt-2"
@@ -1136,7 +1296,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
                   type="checkbox"
                   checked={editingRequireApproval}
                   onChange={(e) => {
-                    isDirtyRef.current = true;
+                    markDirty(true);
                     setEditingRequireApproval(e.target.checked);
                   }}
                   className="w-4 h-4 accent-[#D4A72C] cursor-pointer"
@@ -1201,7 +1361,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
               rows={8}
               value={editingInstructions}
               onChange={(e) => {
-                isDirtyRef.current = true;
+                markDirty(true);
                 setEditingInstructions(e.target.value);
               }}
               className="w-full bg-[#151926] border border-slate-700 rounded-xl p-3 text-xs text-slate-200 font-mono leading-relaxed focus:outline-none focus:border-[#D4A72C]"
@@ -1217,7 +1377,7 @@ export const AIAgentsModule: React.FC<AIAgentsModuleProps> = ({
               </div>
               {activeAgent.diagnostics?.lastExecutedAt && (
                 <span className="text-[10px] font-mono text-slate-400">
-                  Última execução: {new Date(activeAgent.diagnostics.lastExecutedAt).toLocaleString('pt-BR')}
+                  Última execução: {formatDateTimeBR(activeAgent.diagnostics.lastExecutedAt, { includeSeconds: true })}
                 </span>
               )}
             </div>

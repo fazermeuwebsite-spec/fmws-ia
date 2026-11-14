@@ -872,12 +872,38 @@ export const api = {
   },
 
   // Firestore Cloud Sync
+  async getCloudStatus(): Promise<{
+    lastMutationAt: string;
+    syncRevision: number;
+    lastBackup: string;
+    counts: Record<string, number>;
+  }> {
+    return request('/api/cloud/status');
+  },
   async exportCloudSnapshot(): Promise<{
+    meta?: { lastMutationAt?: string; syncRevision?: number; exportedAt?: string };
     users: any[];
     buckets: Record<string, any[]>;
     deletedWhatsAppIds?: Array<{ id: string; deletedAt: string }>;
   }> {
     return request('/api/cloud/export');
+  },
+  async reconcileCloudSnapshot(snapshot: {
+    users?: any[];
+    buckets: Record<string, any[]>;
+    cloudUpdatedAt?: string;
+  }): Promise<{
+    action: 'restored_from_cloud' | 'push_to_cloud' | 'in_sync';
+    reason: string;
+    localMutationAt: string;
+    cloudMutationAt: string;
+    localRevision: number;
+    cloudRevision: number;
+  }> {
+    return request('/api/cloud/reconcile', {
+      method: 'POST',
+      body: JSON.stringify(snapshot)
+    });
   },
   async restoreCloudSnapshot(
     buckets: Record<string, any[]>,

@@ -12,6 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Lead, Client, FinancialTransaction, Proposal, Project, AIAgentConfig } from '../types';
+import { formatDateBR } from '../utils/dateFormat';
 
 interface ReportsModuleProps {
   leads: Lead[];
@@ -72,15 +73,15 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
   const handleExportCSV = () => {
     const rows = [
       ['Tipo', 'Cliente/Empresa', 'Segmento', 'Valor (R$)', 'Status', 'Data'],
-      ...leads.map(l => ['Lead CRM', l.company, l.segment, l.value, l.status, l.createdAt]),
-      ...financial.map(f => [f.type.toUpperCase(), f.clientName, f.category, f.value, f.status, f.dueDate])
+      ...leads.map(l => ['Lead CRM', l.company, l.segment, l.value, l.status, formatDateBR(l.createdAt)]),
+      ...financial.map(f => [f.type.toUpperCase(), f.clientName, f.category, f.value, f.status, formatDateBR(f.dueDate)])
     ];
 
     const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(";")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `FMWS_Relatorio_Comercial_${new Date().toISOString().substring(0, 10)}.csv`);
+    link.setAttribute("download", `FMWS_Relatorio_Comercial_${formatDateBR(new Date())}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

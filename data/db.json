@@ -1151,13 +1151,13 @@
       "contactName": "Nicolas Neves (Fazer Meu Website)",
       "clientId": "cli_1794556578360",
       "channel": "meta_cloud",
-      "status": "human_takeover",
-      "aiPaused": true,
-      "lastMessage": "teste",
-      "lastMessageTimestamp": "2026-11-14T12:18:12+00:00",
-      "lastInboundAt": "2026-11-14T12:18:12+00:00",
+      "status": "ai_active",
+      "aiPaused": false,
+      "lastMessage": "quero umwebsite",
+      "lastMessageTimestamp": "2026-11-14T15:15:37+00:00",
+      "lastInboundAt": "2026-11-14T15:15:37+00:00",
       "unreadCount": 0,
-      "assignedAgent": "Humano",
+      "assignedAgent": "Atendente IA",
       "tags": [
         "WhatsApp Cloud API",
         "Firestore"
@@ -1209,6 +1209,15 @@
           "byUser": "nicolas neves",
           "note": "Conversas unificadas (conv_1794559048031, conv_333767429829080_5511986342981 -> conv_333767429829080_5511986342981) com 27 mensagens.",
           "at": "2026-11-14T03:22:13.976Z"
+        },
+        {
+          "id": "ho_1794669324861_863",
+          "action": "returned_to_ai",
+          "fromStatus": "human_takeover",
+          "toStatus": "ai_active",
+          "assignedTo": "Atendente IA",
+          "byUser": "nicolas neves",
+          "at": "2026-11-14T15:15:24.861Z"
         }
       ],
       "messages": [
@@ -1638,6 +1647,58 @@
           "phoneNumberId": "333767429829080",
           "waId": "5511986342981",
           "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjZDODVDNDM5QjU5Q0UwNDZCOAA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "ola",
+          "timestamp": "2026-11-14T15:08:48.811Z",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjZDODVDNDM5QjU5Q0UwNDZCOAA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQkJDMkQ0QkY0NjlDMTc5NjUA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "oi",
+          "timestamp": "2026-11-14T15:09:03+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQkJDMkQ0QkY0NjlDMTc5NjUA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkQ4M0Q5N0I4NEI5MTA4NTkzOAA_",
+          "sender": "agent",
+          "direction": "outbound",
+          "senderName": "nicolas neves",
+          "text": "teste",
+          "timestamp": "2026-11-14T15:15:29.104Z",
+          "status": "read",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkQ4M0Q5N0I4NEI5MTA4NTkzOAA=",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
+        },
+        {
+          "id": "wamid_wamid_HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBGODJFOTQ3NkUwQkRCQzg3MUMA",
+          "sender": "contact",
+          "direction": "inbound",
+          "senderName": "Fazer Meu Website",
+          "text": "quero umwebsite",
+          "timestamp": "2026-11-14T15:15:37+00:00",
+          "status": "delivered",
+          "metaMessageId": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBGODJFOTQ3NkUwQkRCQzg3MUMA",
+          "phoneNumberId": "333767429829080",
+          "waId": "5511986342981",
+          "aiGenerated": false
         }
       ]
     },
@@ -1852,7 +1913,83 @@
       "conversationKey": "cY71FhvZwQf3w6BVNi2mLpLHCHL2:default:5511986342981"
     }
   ],
+  "deletedWhatsAppConversations": [],
   "whatsappLogs": [
+    {
+      "id": "walog_php_1794669346_dcbb94",
+      "timestamp": "2026-11-14T15:15:46+00:00",
+      "source": "ai",
+      "level": "error",
+      "eventType": "ai_error",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBGODJFOTQ3NkUwQkRCQzg3MUMA",
+      "summary": "Erro Gemini (gemini-3.8-flash) no PHP 20i: Google Gemini está desativado nas configurações do CRM."
+    },
+    {
+      "id": "walog_php_1794669342_7a7e34",
+      "timestamp": "2026-11-14T15:15:42+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjBGODJFOTQ3NkUwQkRCQzg3MUMA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794669329103_8447",
+      "timestamp": "2026-11-14T15:15:29.103Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEkQ4M0Q5N0I4NEI5MTA4NTkzOAA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
+    {
+      "id": "walog_1794669324862_4423",
+      "timestamp": "2026-11-14T15:15:24.862Z",
+      "source": "handover",
+      "level": "info",
+      "eventType": "handover_returned_to_ai",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "summary": "Handover (returned_to_ai) por nicolas neves: status=ai_active, responsável=Atendente IA, aiPaused=false."
+    },
+    {
+      "id": "walog_1794669093255_6721",
+      "timestamp": "2026-11-14T15:11:33.255Z",
+      "source": "verify",
+      "level": "info",
+      "eventType": "meta_connection_test",
+      "phoneNumberId": "333767429829080",
+      "summary": "Conexão Meta Graph API validada: +55 11 94579-9976 (Fazer Meu Website)."
+    },
+    {
+      "id": "walog_php_1794668947_2af53d",
+      "timestamp": "2026-11-14T15:09:07+00:00",
+      "source": "php_webhook",
+      "level": "info",
+      "eventType": "inbound_message",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABIYFjNFQjAyQkJDMkQ0QkY0NjlDMTc5NjUA",
+      "summary": "Mensagem recebida de Nicolas Neves (Fazer Meu Website) (+5511986342981) em conv_333767429829080_5511986342981",
+      "httpStatus": 200
+    },
+    {
+      "id": "walog_1794668928810_7858",
+      "timestamp": "2026-11-14T15:08:48.810Z",
+      "source": "outbound",
+      "level": "info",
+      "eventType": "manual_send_ok",
+      "conversationId": "conv_333767429829080_5511986342981",
+      "phoneNumberId": "333767429829080",
+      "wamid": "wamid.HBgNNTUxMTk4NjM0Mjk4MRUCABEYEjZDODVDNDM5QjU5Q0UwNDZCOAA=",
+      "summary": "Mensagem manual enviada por nicolas neves para +5511986342981."
+    },
     {
       "id": "walog_php_1794658696_1f170b",
       "timestamp": "2026-11-14T12:18:16+00:00",
@@ -2830,72 +2967,6 @@
       "eventType": "manual_send_failed",
       "conversationId": "conv_1794560793737_542",
       "summary": "Falha ao enviar para +5511999990001: Access Token da Meta inválido ou expirado (#190). Gere um token permanente de Usuário do Sistema no Meta Business e atualize em Configurações."
-    },
-    {
-      "id": "walog_1794560793852_4055",
-      "timestamp": "2026-11-13T09:06:33.852Z",
-      "source": "php_bridge",
-      "level": "info",
-      "eventType": "inbound_message",
-      "conversationId": "conv_1794560793737_542",
-      "wamid": "wamid.test_1794560793848_3",
-      "summary": "Mensagem recebida de +5511999990001 salva (human_takeover)."
-    },
-    {
-      "id": "walog_1794560793846_39",
-      "timestamp": "2026-11-13T09:06:33.846Z",
-      "source": "handover",
-      "level": "info",
-      "eventType": "handover_transferred",
-      "conversationId": "conv_1794560793737_542",
-      "summary": "Handover (transferred) por nicolas neves: status=human_takeover, responsável=nicolas neves, aiPaused=true."
-    },
-    {
-      "id": "walog_1794560793841_5812",
-      "timestamp": "2026-11-13T09:06:33.841Z",
-      "source": "php_bridge",
-      "level": "info",
-      "eventType": "duplicate_wamid_skipped",
-      "wamid": "wamid.test_1794560793826_2",
-      "summary": "Evento duplicado ignorado por idempotência (wamid: wamid.test_1794560793826_2)."
-    },
-    {
-      "id": "walog_1794560793832_4502",
-      "timestamp": "2026-11-13T09:06:33.832Z",
-      "source": "php_bridge",
-      "level": "info",
-      "eventType": "inbound_message",
-      "conversationId": "conv_1794560793737_542",
-      "wamid": "wamid.test_1794560793826_2",
-      "summary": "Mensagem recebida de +5511999990001 salva (ai_active)."
-    },
-    {
-      "id": "walog_1794560793797_7331",
-      "timestamp": "2026-11-13T09:06:33.797Z",
-      "source": "security",
-      "level": "error",
-      "eventType": "bridge_hmac_rejected",
-      "httpStatus": 401,
-      "summary": "Bridge PHP rejeitado: Requisição duplicada detectada (proteção anti-replay: nonce já utilizado)."
-    },
-    {
-      "id": "walog_1794560793740_9549",
-      "timestamp": "2026-11-13T09:06:33.740Z",
-      "source": "php_bridge",
-      "level": "info",
-      "eventType": "inbound_message",
-      "conversationId": "conv_1794560793737_542",
-      "wamid": "wamid.test_1794560793718_1",
-      "summary": "Mensagem recebida de +5511999990001 salva (ai_active)."
-    },
-    {
-      "id": "walog_1794560793726_1242",
-      "timestamp": "2026-11-13T09:06:33.726Z",
-      "source": "security",
-      "level": "error",
-      "eventType": "bridge_hmac_rejected",
-      "httpStatus": 401,
-      "summary": "Bridge PHP rejeitado: Assinatura HMAC X-FMWS-Signature inválida."
     }
   ],
   "proposals": [],
@@ -3153,5 +3224,5 @@
       "color": "emerald"
     }
   ],
-  "lastBackup": "2026-11-14T14:42:10.316Z"
+  "lastBackup": "2026-11-14T15:17:23.049Z"
 }

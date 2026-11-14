@@ -22,6 +22,8 @@ import {
   formatCatalogServicePriceLabel,
   getDefaultExpiryDate
 } from '../utils/clientServices';
+import { formatDateBR } from '../utils/dateFormat';
+import { DateInputBR } from './DateInputBR';
 
 interface ClientServiceManagerProps {
   services: ClientService[];
@@ -338,10 +340,9 @@ export const ClientServiceManager: React.FC<ClientServiceManagerProps> = ({
 
             <div>
               <label className="block text-[11px] text-slate-400 font-semibold mb-1">Vencimento / Renovação</label>
-              <input
-                type="date"
+              <DateInputBR
                 value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
+                onChange={setExpiryDate}
                 className="w-full bg-[#151926] border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs"
               />
             </div>
@@ -447,7 +448,7 @@ export const ClientServiceManager: React.FC<ClientServiceManagerProps> = ({
                     {svc.expiryDate && (
                       <>
                         <span aria-hidden="true">·</span>
-                        <span className="font-mono tabular-nums">Vence {svc.expiryDate}</span>
+                        <span className="font-mono tabular-nums">Vence {formatDateBR(svc.expiryDate)}</span>
                       </>
                     )}
                   </div>

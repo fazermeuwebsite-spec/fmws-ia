@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Proposal } from '../types';
 import { ProposalPrintModal } from './ProposalPrintModal';
+import { formatDateBR } from '../utils/dateFormat';
 
 interface ProposalsModuleProps {
   proposals: Proposal[];
@@ -146,8 +147,8 @@ export const ProposalsModule: React.FC<ProposalsModuleProps> = ({
                   <td className="py-3 px-4 text-slate-400">
                     {prop.deliveryDays} dias úteis
                   </td>
-                  <td className="py-3 px-4 text-slate-400">
-                    {prop.validUntil}
+                  <td className="py-3 px-4 text-slate-400 font-mono tabular-nums">
+                    {formatDateBR(prop.validUntil)}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex flex-col gap-1 items-start">

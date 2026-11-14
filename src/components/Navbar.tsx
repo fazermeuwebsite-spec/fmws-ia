@@ -4,6 +4,7 @@ import {
   Plus,
   ChevronDown,
   Sparkles,
+  Cpu,
   LogOut,
   KeyRound,
   ShieldCheck,
@@ -66,9 +67,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [pwdSaving, setPwdSaving] = useState(false);
 
   const isMetaConnected = integrations?.metaCloud?.status === 'conectado';
-  const isGeminiConnected = integrations?.gemini?.status === 'conectado';
+  const geminiStatus = integrations?.gemini?.status;
+  const isGeminiConnected = geminiStatus === 'conectado';
+  const deepseekStatus = integrations?.deepseek?.status;
+  const isDeepSeekConnected = deepseekStatus === 'conectado';
   const isAsaasConnected = integrations?.asaas?.status === 'conectado';
   const isPlacesConnected = integrations?.googlePlaces?.status === 'conectado';
+
+  const formatProviderBadgeText = (status?: string) => {
+    if (status === 'conectado') return 'Conectado';
+    if (status === 'desconectado') return 'Desativado';
+    if (status === 'sem_saldo') return 'Sem saldo';
+    if (status === 'limite_atingido') return 'Limite';
+    if (status === 'erro') return 'Erro';
+    return 'Não configurado';
+  };
 
   const hasPerm = (perm: string) =>
     currentUser.role === 'admin' || permissions.includes('*') || permissions.includes(perm);
@@ -123,7 +136,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
             <span className="text-slate-700">|</span>
             <span className={`flex items-center gap-1.5 font-medium ${isGeminiConnected ? 'text-[#D4A72C]' : 'text-slate-400'}`}>
-              <Sparkles size={11} /> Gemini: {isGeminiConnected ? 'Conectado' : 'Não configurado'}
+              <Sparkles size={11} /> Gemini: {formatProviderBadgeText(geminiStatus)}
+            </span>
+            <span className="text-slate-700">|</span>
+            <span
+              className={`flex items-center gap-1.5 font-medium ${
+                isDeepSeekConnected
+                  ? 'text-emerald-400'
+                  : deepseekStatus === 'sem_saldo'
+                  ? 'text-amber-300'
+                  : deepseekStatus === 'erro'
+                  ? 'text-rose-400'
+                  : 'text-slate-400'
+              }`}
+            >
+              <Cpu size={11} /> DeepSeek: {formatProviderBadgeText(deepseekStatus)}
             </span>
             <span className="text-slate-700">|</span>
             <span className={`flex items-center gap-1.5 font-medium ${isPlacesConnected ? 'text-amber-300' : 'text-slate-400'}`}>
@@ -140,29 +167,43 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => onSyncFirestore?.()}
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-emerald-500/35 text-[11px] font-semibold text-emerald-300 hover:bg-slate-800 cursor-pointer"
-              title={`Firestore conectado (${firestoreProjectId} / ${firestoreDatabaseId}) e sincronizando com ${firebaseUser.email}. Clique para sincronizar agora.`}
+              className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 text-[11px] font-semibold hover:bg-slate-800 cursor-pointer border ${
+                cloudSyncStatus === 'error'
+                  ? 'border-rose-500/40 text-rose-300'
+                  : 'border-emerald-500/35 text-emerald-300'
+              }`}
+              title={`Sincronização Firestore ativa (${firestoreProjectId} / ${firestoreDatabaseId}) com ${firebaseUser.email}. Clique para sincronizar agora.`}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  cloudSyncStatus === 'error'
+                    ? 'bg-rose-400'
+                    : cloudSyncStatus === 'syncing'
+                    ? 'bg-amber-400 animate-pulse'
+                    : 'bg-emerald-400'
+                }`}
+              />
               <Database size={12} className="text-[#D4A72C]" />
               <span>
                 {cloudSyncStatus === 'syncing'
-                  ? 'Salvando Firestore...'
+                  ? 'Salvando Nuvem...'
                   : cloudSyncStatus === 'error'
-                  ? 'Erro no Sync'
-                  : 'Firestore Conectado'}
+                  ? 'Erro Sync (Tentar)'
+                  : 'Nuvem Sincronizada'}
               </span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => onConnectFirebase?.()}
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 hover:border-[#D4A72C]/60 text-[11px] font-semibold text-emerald-300 cursor-pointer"
-              title={`Banco Firestore já conectado (${firestoreProjectId} • ${firestoreDatabaseId}). Clique para sincronizar backup com sua conta Google.`}
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-[11px] font-semibold text-amber-300 cursor-pointer"
+              title={`Sessão local (${firestoreProjectId} • ${firestoreDatabaseId}). ${
+                firestoreOnline ? 'Conecte sua conta Google para restaurar e sincronizar dados na nuvem.' : 'Firestore offline.'
+              }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${firestoreOnline ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${firestoreOnline ? 'bg-amber-400' : 'bg-rose-400'}`} />
               <Database size={12} className="text-[#D4A72C]" />
-              <span>{firestoreOnline ? 'Firestore Conectado' : 'Firestore Offline'}</span>
+              <span>{firestoreOnline ? 'Ativar Sync Nuvem' : 'Firestore Offline'}</span>
             </button>
           )}
 

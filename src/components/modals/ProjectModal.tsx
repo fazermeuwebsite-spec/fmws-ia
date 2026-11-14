@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, KanbanSquare, Plus, Trash2, CheckSquare, Square, AlertTriangle } from 'lucide-react';
 import { KanbanStageConfig, PriorityLevel, Project, ProjectStage, ProjectTask } from '../../types';
+import { DateInputBR } from '../DateInputBR';
+import { getLocalIsoDate } from '../../utils/dateFormat';
 
 interface ProjectModalProps {
   project?: Project | null;
@@ -25,9 +27,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const [title, setTitle] = useState(project?.title || '');
   const [clientName, setClientName] = useState(project?.clientName || '');
   const [stage, setStage] = useState<ProjectStage>(project?.stage || defaultStage);
-  const [deadline, setDeadline] = useState(
-    project?.deadline || new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10)
-  );
+  const [deadline, setDeadline] = useState(project?.deadline || getLocalIsoDate(15));
   const [priority, setPriority] = useState<PriorityLevel>(project?.priority || 'alta');
   const [budget, setBudget] = useState(project?.budget !== undefined ? String(project.budget) : '0');
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState(project?.websitePreviewUrl || '');
@@ -163,10 +163,9 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
 
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Prazo de Entrega (Go-Live)</label>
-              <input
-                type="date"
+              <DateInputBR
                 value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                onChange={setDeadline}
                 required
                 className="w-full bg-[#090B10] border border-slate-700 rounded-lg p-2 text-white font-mono"
               />

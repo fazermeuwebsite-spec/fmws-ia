@@ -2564,26 +2564,48 @@ app.put('/api/agents/:id', requireRole('admin'), (req: AuthenticatedRequest, res
       ? req.body.fallbackProvider
       : agent.fallbackProvider || defaultSecondary;
 
-  const requestedStatus = req.body?.status ?? agent.status;
-  const integrations = storage.getIntegrations();
-  if (requestedStatus === 'ativo') {
+  const sanitizedIntegrations = storage.getSanitizedIntegrations();
+  const hasDsKey = Boolean(storage.getEffectiveDeepSeekKey());
+  const dsEnabled = Boolean(sanitizedIntegrations.deepseek?.enabled);
+  const hasGeminiKey = Boolean(sanitizedIntegrations.gemini?.hasEnvKey);
+  const geminiEnabled = Boolean(sanitizedIntegrations.gemini?.enabled);
+
+  const providerHasKey = nextProvider === 'deepseek' ? hasDsKey : hasGeminiKey;
+  const providerReady = nextProvider === 'deepseek' ? hasDsKey && dsEnabled : hasGeminiKey && geminiEnabled;
+
+  const explicitStatus = req.body?.status;
+  let nextStatus = explicitStatus ?? agent.status;
+
+  if (explicitStatus === 'ativo') {
     if (nextProvider === 'deepseek') {
-      const hasDsKey = Boolean(storage.getEffectiveDeepSeekKey());
       if (!hasDsKey) {
         return res.status(400).json({
           error: 'Não é possível ativar o agente com DeepSeek sem uma DeepSeek API Key configurada no servidor.'
         });
       }
-      if (!integrations.deepseek?.enabled) {
+      if (!dsEnabled) {
         return res.status(400).json({
           error: 'Ative a integração DeepSeek API em Configurações > DeepSeek API antes de ativar o agente.'
         });
       }
     } else {
-      if (!integrations.gemini.enabled) {
+      if (!hasGeminiKey) {
         return res.status(400).json({
-          error: 'Não é possível ativar o agente com Gemini sem uma GEMINI_API_KEY ativa e habilitada no servidor.'
+          error: 'Não é possível ativar o agente com Gemini sem GEMINI_API_KEY configurada nos Secrets do servidor.'
         });
+      }
+      if (!geminiEnabled) {
+        return res.status(400).json({
+          error: 'Ative a integração Google Gemini API em Configurações > Google Gemini API antes de ativar o agente.'
+        });
+      }
+    }
+  } else if (explicitStatus === undefined) {
+    if (agent.status !== 'pausado') {
+      if (!providerHasKey) {
+        nextStatus = 'nao_configurado';
+      } else if (providerReady && (agent.status === 'erro' || agent.status === 'nao_configurado')) {
+        nextStatus = 'ativo';
       }
     }
   }
@@ -2616,7 +2638,7 @@ app.put('/api/agents/:id', requireRole('admin'), (req: AuthenticatedRequest, res
     fallbackEnabled: nextFallbackEnabled,
     fallbackProvider: nextFallbackProvider === nextProvider ? defaultSecondary : nextFallbackProvider,
     fallbackModel: nextFallbackModel,
-    status: requestedStatus,
+    status: nextStatus,
     personality:
       typeof req.body?.personality === 'string' ? req.body.personality.trim() : agent.personality,
     instructions:
@@ -3145,8 +3167,29 @@ app.post('/api/integrations/subscribe-waba', requireRole('admin'), async (_req: 
 });
 
 // --- FIRESTORE CLOUD SYNC SNAPSHOT (ADMIN ONLY, NO SECRETS/HASHES EXPOSED) ---
+app.get('/api/cloud/status', requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
+  res.json(storage.getPersistenceMetadata());
+});
+
 app.get('/api/cloud/export', requireRole('admin'), (_req: AuthenticatedRequest, res: Response) => {
   res.json(storage.getCloudSyncExport());
+});
+
+app.post('/api/cloud/reconcile', requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { buckets, users, cloudUpdatedAt } = req.body || {};
+    if (!buckets || typeof buckets !== 'object') {
+      return res.status(400).json({ error: 'Snapshot de coleções inválido para reconciliação.' });
+    }
+    const result = storage.reconcileWithCloudSnapshot({
+      buckets,
+      users: Array.isArray(users) ? users : undefined,
+      cloudUpdatedAt: typeof cloudUpdatedAt === 'string' ? cloudUpdatedAt : undefined
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Falha ao reconciliar dados com a nuvem.' });
+  }
 });
 
 app.post('/api/cloud/restore', requireRole('admin'), (req: AuthenticatedRequest, res: Response) => {

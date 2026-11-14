@@ -60,6 +60,8 @@ interface DatabaseSchema {
   crmStages: KanbanStageConfig[];
   projectStages: KanbanStageConfig[];
   lastBackup?: string;
+  lastMutationAt?: string;
+  syncRevision?: number;
 }
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
@@ -209,6 +211,90 @@ function decryptVaultPayload(token: unknown): Record<string, string> {
   }
 }
 
+function hasValidGeminiEnvKey(): boolean {
+  return Boolean(
+    process.env.GEMINI_API_KEY &&
+      process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' &&
+      process.env.GEMINI_API_KEY.trim().length > 5
+  );
+}
+
+function reconcileAgentsAgainstIntegrations(
+  agents: AIAgentConfig[],
+  integrations: SystemIntegrations,
+  options?: { recoverErrors?: boolean }
+): { agents: AIAgentConfig[]; changed: boolean } {
+  const hasGeminiKey = hasValidGeminiEnvKey();
+  const geminiReady = Boolean(hasGeminiKey && integrations.gemini?.enabled);
+
+  const storedDsPlain = decryptSecretAtRest(integrations.deepseek?.apiKey);
+  const hasDsKey = Boolean(storedDsPlain || getEnvDeepSeekKey());
+  const dsReady = Boolean(hasDsKey && integrations.deepseek?.enabled);
+
+  // Migrate ONLY when exclusively one AI provider is enabled+configured.
+  // When both Gemini and DeepSeek are ready, preserve each agent's independent selection.
+  let targetProvider: 'gemini' | 'deepseek' | null = null;
+  if (!geminiReady && dsReady) {
+    targetProvider = 'deepseek';
+  } else if (geminiReady && !dsReady) {
+    targetProvider = 'gemini';
+  }
+
+  let changed = false;
+  const nextAgents: AIAgentConfig[] = agents.map((agent): AIAgentConfig => {
+    const currentProv: 'gemini' | 'deepseek' = agent.provider === 'deepseek' ? 'deepseek' : 'gemini';
+
+    if (targetProvider && currentProv !== targetProvider) {
+      changed = true;
+      const prevFallbackMatch =
+        agent.fallbackProvider === targetProvider && agent.fallbackModel
+          ? agent.fallbackModel.trim()
+          : '';
+
+      const targetModel =
+        targetProvider === 'deepseek'
+          ? prevFallbackMatch && !prevFallbackMatch.startsWith('gemini-')
+            ? prevFallbackMatch
+            : integrations.deepseek?.model || 'deepseek-flash'
+          : prevFallbackMatch && !prevFallbackMatch.toLowerCase().includes('deepseek')
+          ? prevFallbackMatch
+          : integrations.gemini?.model || 'gemini-4-hydrogen';
+
+      const prevPrimaryModel =
+        agent.model && agent.model.trim()
+          ? agent.model.trim()
+          : currentProv === 'deepseek'
+          ? integrations.deepseek?.model || 'deepseek-flash'
+          : integrations.gemini?.model || 'gemini-4-hydrogen';
+
+      return {
+        ...agent,
+        provider: targetProvider,
+        model: targetModel,
+        fallbackProvider: currentProv,
+        fallbackModel: prevPrimaryModel,
+        status: agent.status === 'pausado' ? 'pausado' : 'ativo'
+      };
+    }
+
+    const ownProviderReady = currentProv === 'deepseek' ? dsReady : geminiReady;
+    if (
+      ownProviderReady &&
+      (agent.status === 'nao_configurado' || (options?.recoverErrors && agent.status === 'erro'))
+    ) {
+      changed = true;
+      return {
+        ...agent,
+        status: 'ativo'
+      };
+    }
+
+    return agent;
+  });
+
+  return { agents: nextAgents, changed };
+}
+
 class StorageManager {
   private db: DatabaseSchema;
 
@@ -289,19 +375,21 @@ class StorageManager {
               dirty = true;
             }
           } else {
-            const expectedStatus = integrations.gemini.enabled ? 'conectado' : 'desconectado';
-            if (integrations.gemini.status === 'nao_configurado' && integrations.gemini.enabled) {
+            if (integrations.gemini.status === 'nao_configurado' && !integrations.gemini.enabled) {
+              integrations.gemini.enabled = true;
+              integrations.gemini.status = 'conectado';
+              dirty = true;
+            } else if (integrations.gemini.status === 'nao_configurado' && integrations.gemini.enabled) {
               integrations.gemini.status = 'conectado';
               dirty = true;
             } else if (!integrations.gemini.enabled && integrations.gemini.status === 'conectado') {
               integrations.gemini.status = 'desconectado';
               dirty = true;
             } else if (
-              integrations.gemini.status !== expectedStatus &&
-              integrations.gemini.status !== 'limite_atingido' &&
-              integrations.gemini.status !== 'erro'
+              integrations.gemini.enabled &&
+              integrations.gemini.status === 'desconectado'
             ) {
-              integrations.gemini.status = expectedStatus;
+              integrations.gemini.status = 'conectado';
               dirty = true;
             }
           }
@@ -463,6 +551,24 @@ class StorageManager {
             return nextAgent;
           });
 
+          const resolvedLastMutationAt =
+            typeof parsed.lastMutationAt === 'string'
+              ? parsed.lastMutationAt
+              : typeof parsed.lastBackup === 'string'
+              ? parsed.lastBackup
+              : '';
+          const resolvedSyncRevision =
+            typeof parsed.syncRevision === 'number' && Number.isFinite(parsed.syncRevision) && parsed.syncRevision >= 0
+              ? Math.floor(parsed.syncRevision)
+              : resolvedLastMutationAt
+              ? 1
+              : 0;
+
+          const reconciledAgents = reconcileAgentsAgainstIntegrations(aiAgents, integrations);
+          if (reconciledAgents.changed) {
+            dirty = true;
+          }
+
           const hydrated: DatabaseSchema = {
             leads: Array.isArray(parsed.leads) ? parsed.leads : [],
             clients: Array.isArray(parsed.clients) ? parsed.clients : [],
@@ -476,18 +582,20 @@ class StorageManager {
             projects: Array.isArray(parsed.projects) ? parsed.projects : [],
             financialTransactions: Array.isArray(parsed.financialTransactions) ? parsed.financialTransactions : [],
             supportTickets: Array.isArray(parsed.supportTickets) ? parsed.supportTickets : [],
-            aiAgents,
+            aiAgents: reconciledAgents.agents,
             integrations,
             services: cleanedServices,
             users: cleanedUsers,
             sessions: validSessions,
             crmStages,
             projectStages,
-            lastBackup: parsed.lastBackup || new Date().toISOString()
+            lastBackup: parsed.lastBackup || new Date().toISOString(),
+            lastMutationAt: resolvedLastMutationAt,
+            syncRevision: resolvedSyncRevision
           };
 
           if (dirty) {
-            this.saveToFile(hydrated);
+            this.saveToFile(hydrated, { recordMutation: false });
           }
           return hydrated;
         }
@@ -522,18 +630,31 @@ class StorageManager {
       sessions: [],
       crmStages: defaultCrmStages,
       projectStages: defaultProjectStages,
-      lastBackup: new Date().toISOString()
+      lastBackup: new Date().toISOString(),
+      lastMutationAt: '',
+      syncRevision: 0
     };
 
-    this.saveToFile(defaultData);
+    this.saveToFile(defaultData, { recordMutation: false });
     return defaultData;
   }
 
-  private saveToFile(data?: DatabaseSchema) {
+  private saveToFile(data?: DatabaseSchema, options?: { recordMutation?: boolean }) {
     try {
       this.ensureDirectory();
       const target = data || this.db;
-      target.lastBackup = new Date().toISOString();
+      const nowMs = Date.now();
+      const nowIso = new Date(nowMs).toISOString();
+      target.lastBackup = nowIso;
+      if (options?.recordMutation !== false) {
+        const prevMutationMs = target.lastMutationAt ? Date.parse(target.lastMutationAt) || 0 : 0;
+        const nextMutationMs = Math.max(nowMs, prevMutationMs + 1);
+        target.lastMutationAt = new Date(nextMutationMs).toISOString();
+        target.syncRevision =
+          (typeof target.syncRevision === 'number' && Number.isFinite(target.syncRevision)
+            ? target.syncRevision
+            : 0) + 1;
+      }
       const content = JSON.stringify(target, null, 2);
       fs.writeFileSync(DB_TMP, content, 'utf-8');
       fs.renameSync(DB_TMP, DB_FILE);
@@ -884,7 +1005,7 @@ class StorageManager {
       this.db.whatsappLogs.length = 100;
     }
     if (persist) {
-      this.saveToFile();
+      this.saveToFile(undefined, { recordMutation: false });
     }
     return item;
   }
@@ -1337,7 +1458,7 @@ class StorageManager {
           new Date(b.lastMessageTimestamp || 0).getTime() -
           new Date(a.lastMessageTimestamp || 0).getTime()
       );
-      this.saveToFile();
+      this.saveToFile(undefined, { recordMutation: false });
     }
     return this.db.whatsappConversations;
   }
@@ -1400,7 +1521,7 @@ class StorageManager {
         : {})
     };
     this.db.whatsappConversations[idx] = updated;
-    this.saveToFile();
+    this.saveToFile(undefined, { recordMutation: false });
     return updated;
   }
 
@@ -1422,7 +1543,7 @@ class StorageManager {
       this.db.whatsappLogs = Array.from(byId.values())
         .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
         .slice(0, 100);
-      this.saveToFile();
+      this.saveToFile(undefined, { recordMutation: false });
     }
     return this.db.whatsappLogs;
   }
@@ -1588,39 +1709,61 @@ class StorageManager {
         apiKeyHint: maskSecretHint(raw.asaas.apiKey),
         status: raw.asaas.status
       },
-      gemini: {
-        enabled: raw.gemini.enabled,
-        model: raw.gemini.model,
-        requestsToday: raw.gemini.requestsToday,
-        quotaLimit: raw.gemini.quotaLimit,
-        hasEnvKey: Boolean(
+      gemini: (() => {
+        const hasEnvKey = Boolean(
           process.env.GEMINI_API_KEY &&
           process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' &&
           process.env.GEMINI_API_KEY.trim().length > 5
-        ),
-        availableModels: raw.gemini.availableModels || ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'],
-        status: raw.gemini.status
-      },
-      deepseek: {
-        enabled: Boolean(raw.deepseek?.enabled),
-        baseUrl: normalizeDeepSeekBaseUrl(raw.deepseek?.baseUrl),
-        model: raw.deepseek?.model || 'deepseek-flash',
-        hasApiKey: Boolean(decryptedDsKey),
-        apiKeyHint: maskSecretHint(decryptedDsKey),
-        hasEnvKey: Boolean(envDsKey),
-        requestsToday: raw.deepseek?.requestsToday ?? 0,
-        quotaLimit: raw.deepseek?.quotaLimit ?? 1500,
-        timeoutMs: raw.deepseek?.timeoutMs ?? 25000,
-        maxTokens: raw.deepseek?.maxTokens ?? 1200,
-        tokensUsedToday: raw.deepseek?.tokensUsedToday ?? 0,
-        availableModels:
-          Array.isArray(raw.deepseek?.availableModels) && raw.deepseek.availableModels.length > 0
-            ? raw.deepseek.availableModels
-            : ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
-        modelsUpdatedAt: raw.deepseek?.modelsUpdatedAt,
-        usageHistory: Array.isArray(raw.deepseek?.usageHistory) ? raw.deepseek.usageHistory.slice(0, 50) : [],
-        status: raw.deepseek?.status || 'nao_configurado'
-      }
+        );
+        const derivedGeminiStatus = !hasEnvKey
+          ? 'nao_configurado'
+          : !raw.gemini.enabled
+          ? 'desconectado'
+          : raw.gemini.status === 'nao_configurado' || raw.gemini.status === 'desconectado'
+          ? 'conectado'
+          : raw.gemini.status;
+        return {
+          enabled: raw.gemini.enabled,
+          model: raw.gemini.model,
+          requestsToday: raw.gemini.requestsToday,
+          quotaLimit: raw.gemini.quotaLimit,
+          hasEnvKey,
+          availableModels: raw.gemini.availableModels || ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'],
+          status: derivedGeminiStatus
+        };
+      })(),
+      deepseek: (() => {
+        const hasEffectiveDsKey = Boolean(decryptedDsKey || envDsKey);
+        const dsEnabled = Boolean(raw.deepseek?.enabled);
+        const rawDsStatus = raw.deepseek?.status || 'nao_configurado';
+        const derivedDsStatus = !hasEffectiveDsKey
+          ? 'nao_configurado'
+          : !dsEnabled
+          ? 'desconectado'
+          : rawDsStatus === 'nao_configurado' || rawDsStatus === 'desconectado'
+          ? 'conectado'
+          : rawDsStatus;
+        return {
+          enabled: dsEnabled,
+          baseUrl: normalizeDeepSeekBaseUrl(raw.deepseek?.baseUrl),
+          model: raw.deepseek?.model || 'deepseek-flash',
+          hasApiKey: Boolean(decryptedDsKey),
+          apiKeyHint: maskSecretHint(decryptedDsKey),
+          hasEnvKey: Boolean(envDsKey),
+          requestsToday: raw.deepseek?.requestsToday ?? 0,
+          quotaLimit: raw.deepseek?.quotaLimit ?? 1500,
+          timeoutMs: raw.deepseek?.timeoutMs ?? 25000,
+          maxTokens: raw.deepseek?.maxTokens ?? 1200,
+          tokensUsedToday: raw.deepseek?.tokensUsedToday ?? 0,
+          availableModels:
+            Array.isArray(raw.deepseek?.availableModels) && raw.deepseek.availableModels.length > 0
+              ? raw.deepseek.availableModels
+              : ['deepseek-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+          modelsUpdatedAt: raw.deepseek?.modelsUpdatedAt,
+          usageHistory: Array.isArray(raw.deepseek?.usageHistory) ? raw.deepseek.usageHistory.slice(0, 50) : [],
+          status: derivedDsStatus
+        };
+      })()
     };
   }
 
@@ -1676,7 +1819,7 @@ class StorageManager {
       phpWebhookVerified: verified,
       lastSyncedAt: syncedAt || cur.lastSyncedAt || new Date().toISOString()
     };
-    this.saveToFile();
+    this.saveToFile(undefined, { recordMutation: false });
     return this.getSanitizedIntegrations();
   }
 
@@ -1948,6 +2091,15 @@ class StorageManager {
       }
     }
 
+    if (incoming.gemini || incoming.deepseek) {
+      const reconciled = reconcileAgentsAgainstIntegrations(this.db.aiAgents, this.db.integrations, {
+        recoverErrors: true
+      });
+      if (reconciled.changed) {
+        this.db.aiAgents = reconciled.agents;
+      }
+    }
+
     this.saveToFile();
     return this.getSanitizedIntegrations();
   }
@@ -2050,20 +2202,29 @@ class StorageManager {
             createdAt: now
           };
 
-      return this.saveUser(adminUser);
+      const wasUnmutatedSeed = !this.db.lastMutationAt && (this.db.syncRevision || 0) === 0;
+      const idx = this.db.users.findIndex((u) => u.id === adminUser.id);
+      if (idx >= 0) {
+        this.db.users[idx] = adminUser;
+      } else {
+        this.db.users.push(adminUser);
+      }
+      // Do not mark fresh container auto-resume as newer than an existing Firestore backup
+      this.saveToFile(undefined, { recordMutation: !wasUnmutatedSeed });
+      return adminUser;
     } finally {
       this.setupLock = false;
     }
   }
 
-  public saveUser(user: StoredUser): StoredUser {
+  public saveUser(user: StoredUser, options?: { recordMutation?: boolean }): StoredUser {
     const idx = this.db.users.findIndex((u) => u.id === user.id);
     if (idx >= 0) {
       this.db.users[idx] = user;
     } else {
       this.db.users.push(user);
     }
-    this.saveToFile();
+    this.saveToFile(undefined, { recordMutation: options?.recordMutation ?? true });
     return user;
   }
 
@@ -2080,7 +2241,7 @@ class StorageManager {
 
   public createSession(userId: string, role: StoredUser['role']): SessionRecord {
     const now = Date.now();
-    // Prune expired sessions and keep database tidy
+    // Prune expired sessions and keep database tidy (never counts as a CRM data mutation)
     this.db.sessions = this.db.sessions.filter((s) => s.expiresAt > now);
     const session: SessionRecord = {
       sid: `sess_${crypto.randomBytes(24).toString('hex')}`,
@@ -2090,7 +2251,7 @@ class StorageManager {
       expiresAt: now + SESSION_TTL_MS
     };
     this.db.sessions.push(session);
-    this.saveToFile();
+    this.saveToFile(undefined, { recordMutation: false });
     return session;
   }
 
@@ -2120,7 +2281,7 @@ class StorageManager {
     const len = this.db.sessions.length;
     this.db.sessions = this.db.sessions.filter((s) => s.sid !== sid);
     if (this.db.sessions.length !== len) {
-      this.saveToFile();
+      this.saveToFile(undefined, { recordMutation: false });
       return true;
     }
     return false;
@@ -2130,11 +2291,31 @@ class StorageManager {
     const len = this.db.sessions.length;
     this.db.sessions = this.db.sessions.filter((s) => s.userId !== userId);
     if (this.db.sessions.length !== len) {
-      this.saveToFile();
+      this.saveToFile(undefined, { recordMutation: false });
     }
   }
 
   // --- CLOUD SYNC SNAPSHOT (NEVER EXPOSES META/WHATSAPP TOKENS OR PLAINTEXT SECRETS) ---
+  public getPersistenceMetadata() {
+    return {
+      lastMutationAt: this.db.lastMutationAt || '',
+      syncRevision: this.db.syncRevision || 0,
+      lastBackup: this.db.lastBackup || '',
+      counts: {
+        leads: this.db.leads.length,
+        clients: this.db.clients.length,
+        prospects: this.db.prospects.length,
+        whatsappConversations: this.db.whatsappConversations.length,
+        proposals: this.db.proposals.length,
+        projects: this.db.projects.length,
+        financialTransactions: this.db.financialTransactions.length,
+        supportTickets: this.db.supportTickets.length,
+        services: this.db.services.length,
+        users: this.db.users.length
+      }
+    };
+  }
+
   public getCloudSyncExport() {
     const rawInt = this.db.integrations;
     const decryptedDsKey = decryptSecretAtRest(rawInt.deepseek?.apiKey);
@@ -2150,7 +2331,23 @@ class StorageManager {
       (c) => !this.isWhatsAppConversationDeleted(c.id, c.lastMessageTimestamp)
     );
 
+    const userGoogleLinks: Record<string, string> = {};
+    for (const u of this.db.users) {
+      if (u.id && u.linkedGoogleEmail) {
+        userGoogleLinks[u.id] = u.linkedGoogleEmail;
+      }
+    }
+
+    const exportedAt = new Date().toISOString();
+    const lastMutationAt = this.db.lastMutationAt || this.db.lastBackup || '';
+    const syncRevision = this.db.syncRevision || 0;
+
     return {
+      meta: {
+        lastMutationAt,
+        syncRevision,
+        exportedAt
+      },
       users: this.db.users.map(({ passwordHash, ...u }) => ({
         ...u,
         ...(passwordHash ? { passwordHash } : {}),
@@ -2209,6 +2406,12 @@ class StorageManager {
                 : {}),
               ...(rawInt.metaCloud.phpWebhookVerified !== undefined
                 ? { phpWebhookVerified: rawInt.metaCloud.phpWebhookVerified }
+                : {}),
+              ...(rawInt.metaCloud.inboundVerified !== undefined
+                ? { inboundVerified: rawInt.metaCloud.inboundVerified }
+                : {}),
+              ...(rawInt.metaCloud.aiAutoReplyOnInbound !== undefined
+                ? { aiAutoReplyOnInbound: rawInt.metaCloud.aiAutoReplyOnInbound }
                 : {})
             },
             googlePlaces: {
@@ -2219,7 +2422,10 @@ class StorageManager {
               environment: rawInt.asaas.environment
             },
             deletedWhatsAppIds: tombstones,
-            syncedAt: this.db.lastBackup || new Date().toISOString(),
+            userGoogleLinks,
+            lastMutationAt,
+            syncRevision,
+            syncedAt: exportedAt,
             ...(encryptedVault ? { encryptedVault } : {})
           }
         ]
@@ -2230,12 +2436,13 @@ class StorageManager {
   public restoreCloudSyncBuckets(
     buckets: Record<string, any[]>,
     users?: any[],
-    options?: { onlyFillMissing?: boolean }
+    options?: { onlyFillMissing?: boolean; cloudMutationAt?: string; cloudSyncRevision?: number }
   ) {
     const onlyFillMissing = Boolean(options?.onlyFillMissing);
+    const cfg = Array.isArray(buckets.integrationsConfig) ? buckets.integrationsConfig[0] : undefined;
 
-    const cloudTombstones = Array.isArray(buckets.integrationsConfig?.[0]?.deletedWhatsAppIds)
-      ? buckets.integrationsConfig[0].deletedWhatsAppIds
+    const cloudTombstones = Array.isArray(cfg?.deletedWhatsAppIds)
+      ? cfg.deletedWhatsAppIds
       : [];
     for (const tb of cloudTombstones) {
       if (tb && typeof tb.id === 'string' && typeof tb.deletedAt === 'string') {
@@ -2248,12 +2455,32 @@ class StorageManager {
       if (Array.isArray(buckets.clients)) this.db.clients = buckets.clients;
       if (Array.isArray(buckets.prospects)) this.db.prospects = buckets.prospects;
       if (Array.isArray(buckets.whatsappConversations)) {
-        this.db.whatsappConversations = buckets.whatsappConversations.filter(
-          (c: WhatsAppConversation) => c && c.id && !this.isWhatsAppConversationDeleted(c.id, c.lastMessageTimestamp)
-        );
+        const existingById = new Map<string, WhatsAppConversation>();
+        for (const existing of this.db.whatsappConversations) {
+          if (existing?.id) existingById.set(existing.id, existing);
+        }
+        this.db.whatsappConversations = buckets.whatsappConversations
+          .filter(
+            (c: WhatsAppConversation) => c && c.id && !this.isWhatsAppConversationDeleted(c.id, c.lastMessageTimestamp)
+          )
+          .map((c: WhatsAppConversation) => {
+            const existing = existingById.get(c.id);
+            const incomingMsgs = Array.isArray(c.messages) ? c.messages : [];
+            const incomingHo = Array.isArray(c.handoverHistory) ? c.handoverHistory : [];
+            if (!existing) {
+              return { ...c, messages: incomingMsgs, handoverHistory: incomingHo };
+            }
+            const msgMerge = this.mergeMessageLists(existing.messages || [], incomingMsgs);
+            const hoMerge = this.mergeHandoverLists(existing.handoverHistory || [], incomingHo);
+            return {
+              ...c,
+              messages: msgMerge.list,
+              handoverHistory: hoMerge.list
+            };
+          });
       }
       if (Array.isArray(buckets.whatsappLogs)) {
-        this.db.whatsappLogs = buckets.whatsappLogs.slice(0, 100);
+        this.mergeWhatsAppLogsFromFirestore(buckets.whatsappLogs);
       }
       if (Array.isArray(buckets.proposals)) this.db.proposals = buckets.proposals;
       if (Array.isArray(buckets.projects)) this.db.projects = buckets.projects;
@@ -2285,8 +2512,7 @@ class StorageManager {
       }
     }
 
-    if (Array.isArray(buckets.integrationsConfig) && buckets.integrationsConfig[0]) {
-      const cfg = buckets.integrationsConfig[0];
+    if (cfg && typeof cfg === 'object') {
       const cur = this.db.integrations;
       const vault = decryptVaultPayload(cfg.encryptedVault);
 
@@ -2320,7 +2546,25 @@ class StorageManager {
           accessToken: curMetaToken,
           webhookVerifyToken: curVerifyToken,
           enabled,
-          status: configured ? (enabled && cur.metaCloud.status === 'conectado' ? 'conectado' : 'desconectado') : 'nao_configurado'
+          ...(!onlyFillMissing && typeof cfg.metaCloud.lastSyncedAt === 'string'
+            ? { lastSyncedAt: cfg.metaCloud.lastSyncedAt }
+            : {}),
+          ...(!onlyFillMissing && typeof cfg.metaCloud.connectedPhoneDisplay === 'string'
+            ? { connectedPhoneDisplay: cfg.metaCloud.connectedPhoneDisplay }
+            : {}),
+          ...(!onlyFillMissing && typeof cfg.metaCloud.connectedVerifiedName === 'string'
+            ? { connectedVerifiedName: cfg.metaCloud.connectedVerifiedName }
+            : {}),
+          ...(!onlyFillMissing && cfg.metaCloud.phpWebhookVerified !== undefined
+            ? { phpWebhookVerified: Boolean(cfg.metaCloud.phpWebhookVerified) }
+            : {}),
+          ...(!onlyFillMissing && cfg.metaCloud.inboundVerified !== undefined
+            ? { inboundVerified: Boolean(cfg.metaCloud.inboundVerified) }
+            : {}),
+          ...(!onlyFillMissing && cfg.metaCloud.aiAutoReplyOnInbound !== undefined
+            ? { aiAutoReplyOnInbound: Boolean(cfg.metaCloud.aiAutoReplyOnInbound) }
+            : {}),
+          status: configured ? (enabled ? 'conectado' : 'desconectado') : 'nao_configurado'
         };
       }
 
@@ -2400,7 +2644,10 @@ class StorageManager {
           cfg.gemini.requestsToday >= 0
             ? Math.floor(cfg.gemini.requestsToday)
             : cur.gemini.requestsToday;
-        const nextEnabled = Boolean(cfg.gemini.enabled);
+        const nextEnabled =
+          cfg.gemini.status === 'nao_configurado' && !cfg.gemini.enabled && hasEnvKey
+            ? true
+            : Boolean(cfg.gemini.enabled);
 
         cur.gemini = {
           ...cur.gemini,
@@ -2408,6 +2655,9 @@ class StorageManager {
           model: nextModel,
           quotaLimit: nextQuota,
           requestsToday: nextRequests,
+          ...(Array.isArray(cfg.gemini.availableModels) && cfg.gemini.availableModels.length > 0
+            ? { availableModels: cfg.gemini.availableModels }
+            : {}),
           status: !hasEnvKey ? 'nao_configurado' : nextEnabled ? 'conectado' : 'desconectado'
         };
       }
@@ -2476,9 +2726,24 @@ class StorageManager {
       }
     }
 
+    const userGoogleLinks =
+      cfg?.userGoogleLinks && typeof cfg.userGoogleLinks === 'object'
+        ? (cfg.userGoogleLinks as Record<string, string>)
+        : {};
+
     if (Array.isArray(users) && users.length > 0) {
+      const cloudUserIds = new Set<string>();
       for (const incomingUser of users) {
         if (!incomingUser || !incomingUser.id || !incomingUser.email) continue;
+        const incomingId = String(incomingUser.id);
+        cloudUserIds.add(incomingId);
+        const linkedEmail =
+          typeof incomingUser.linkedGoogleEmail === 'string' && incomingUser.linkedGoogleEmail.includes('@')
+            ? incomingUser.linkedGoogleEmail.trim().toLowerCase()
+            : typeof userGoogleLinks[incomingId] === 'string' && userGoogleLinks[incomingId].includes('@')
+            ? userGoogleLinks[incomingId].trim().toLowerCase()
+            : undefined;
+
         const validRole: StoredUser['role'] =
           incomingUser.role === 'admin' ||
           incomingUser.role === 'comercial' ||
@@ -2489,7 +2754,7 @@ class StorageManager {
 
         const existingIdx = this.db.users.findIndex(
           (u) =>
-            u.id === incomingUser.id ||
+            u.id === incomingId ||
             u.email.toLowerCase() === String(incomingUser.email).toLowerCase()
         );
 
@@ -2503,10 +2768,11 @@ class StorageManager {
           if (onlyFillMissing) {
             const shouldRestoreAdminCreds =
               existing.id === 'usr_admin' &&
-              incomingUser.id === 'usr_admin' &&
+              incomingId === 'usr_admin' &&
               !existing.passwordHash &&
               Boolean(incomingHash);
             const nextHash = existing.passwordHash || incomingHash;
+            const nextLinkedGoogle = existing.linkedGoogleEmail || linkedEmail;
             this.db.users[existingIdx] = {
               ...existing,
               ...(shouldRestoreAdminCreds
@@ -2515,10 +2781,12 @@ class StorageManager {
                     email: String(incomingUser.email).trim().toLowerCase()
                   }
                 : {}),
-              ...(nextHash ? { passwordHash: nextHash } : {})
+              ...(nextHash ? { passwordHash: nextHash } : {}),
+              ...(nextLinkedGoogle ? { linkedGoogleEmail: nextLinkedGoogle } : {})
             };
           } else {
             const nextHash = incomingHash || existing.passwordHash;
+            const nextLinkedGoogle = linkedEmail || existing.linkedGoogleEmail;
             this.db.users[existingIdx] = {
               ...existing,
               name: String(incomingUser.name || existing.name),
@@ -2526,6 +2794,7 @@ class StorageManager {
               role: existing.id === 'usr_admin' ? 'admin' : validRole,
               active: existing.id === 'usr_admin' ? true : Boolean(incomingUser.active ?? existing.active),
               ...(nextHash ? { passwordHash: nextHash } : {}),
+              ...(nextLinkedGoogle ? { linkedGoogleEmail: nextLinkedGoogle } : {}),
               avatar:
                 typeof incomingUser.avatar === 'string' && incomingUser.avatar
                   ? incomingUser.avatar
@@ -2538,11 +2807,12 @@ class StorageManager {
               ? incomingUser.passwordHash.trim()
               : undefined;
           this.db.users.push({
-            id: String(incomingUser.id),
+            id: incomingId,
             name: String(incomingUser.name || incomingUser.email),
             email: String(incomingUser.email).trim().toLowerCase(),
             role: validRole,
             ...(incomingHash ? { passwordHash: incomingHash } : {}),
+            ...(linkedEmail ? { linkedGoogleEmail: linkedEmail } : {}),
             avatar:
               typeof incomingUser.avatar === 'string' && incomingUser.avatar
                 ? incomingUser.avatar
@@ -2555,9 +2825,197 @@ class StorageManager {
           });
         }
       }
+
+      if (!onlyFillMissing && cloudUserIds.size > 0) {
+        this.db.users = this.db.users.filter(
+          (u) => u.id === 'usr_admin' || u.role === 'admin' || cloudUserIds.has(u.id)
+        );
+      }
     }
 
-    this.saveToFile();
+    if (!onlyFillMissing) {
+      const targetMutationAt =
+        options?.cloudMutationAt ||
+        (typeof cfg?.lastMutationAt === 'string' && cfg.lastMutationAt) ||
+        (typeof cfg?.syncedAt === 'string' && cfg.syncedAt) ||
+        this.db.lastMutationAt ||
+        '';
+      if (targetMutationAt) {
+        this.db.lastMutationAt = targetMutationAt;
+      }
+      if (typeof options?.cloudSyncRevision === 'number' && Number.isFinite(options.cloudSyncRevision)) {
+        this.db.syncRevision = Math.max(0, Math.floor(options.cloudSyncRevision));
+      } else if (typeof cfg?.syncRevision === 'number' && Number.isFinite(cfg.syncRevision)) {
+        this.db.syncRevision = Math.max(0, Math.floor(cfg.syncRevision));
+      }
+    }
+
+    const reconciled = reconcileAgentsAgainstIntegrations(this.db.aiAgents, this.db.integrations);
+    if (reconciled.changed) {
+      this.db.aiAgents = reconciled.agents;
+    }
+
+    this.saveToFile(undefined, { recordMutation: false });
+  }
+
+  public reconcileWithCloudSnapshot(cloudSnapshot: {
+    users?: any[];
+    buckets?: Record<string, any[]>;
+    cloudUpdatedAt?: string;
+  }): {
+    action: 'restored_from_cloud' | 'push_to_cloud' | 'in_sync';
+    reason: string;
+    localMutationAt: string;
+    cloudMutationAt: string;
+    localRevision: number;
+    cloudRevision: number;
+  } {
+    const buckets = cloudSnapshot?.buckets && typeof cloudSnapshot.buckets === 'object' ? cloudSnapshot.buckets : {};
+    const users = Array.isArray(cloudSnapshot?.users) ? cloudSnapshot.users : [];
+    const cfg = Array.isArray(buckets.integrationsConfig) ? buckets.integrationsConfig[0] : undefined;
+
+    const localMutationAt = this.db.lastMutationAt || '';
+    const localMutationMs = localMutationAt ? Date.parse(localMutationAt) || 0 : 0;
+    const localRev = typeof this.db.syncRevision === 'number' ? this.db.syncRevision : 0;
+
+    const cloudMutationAt =
+      (typeof cfg?.lastMutationAt === 'string' && cfg.lastMutationAt.trim()) ||
+      (typeof cfg?.syncedAt === 'string' && cfg.syncedAt.trim()) ||
+      (typeof cloudSnapshot?.cloudUpdatedAt === 'string' && cloudSnapshot.cloudUpdatedAt.trim()) ||
+      '';
+    const cloudMutationMs = cloudMutationAt ? Date.parse(cloudMutationAt) || 0 : 0;
+    const cloudRev =
+      typeof cfg?.syncRevision === 'number' && Number.isFinite(cfg.syncRevision)
+        ? Math.floor(cfg.syncRevision)
+        : 0;
+
+    const localBusinessCount =
+      this.db.leads.length +
+      this.db.clients.length +
+      this.db.prospects.length +
+      this.db.proposals.length +
+      this.db.projects.length +
+      this.db.financialTransactions.length +
+      this.db.supportTickets.length +
+      this.db.services.length;
+
+    const cloudDataBucketKeys = [
+      'leads',
+      'clients',
+      'prospects',
+      'proposals',
+      'projects',
+      'financialTransactions',
+      'supportTickets',
+      'services',
+      'whatsappConversations'
+    ];
+    const cloudBusinessCount = cloudDataBucketKeys.reduce(
+      (acc, k) => acc + (Array.isArray(buckets[k]) ? buckets[k].length : 0),
+      0
+    );
+
+    const cloudHasSecretOrCustomConfig = Boolean(
+      cfg?.encryptedVault ||
+        cfg?.deepseek?.enabled ||
+        cfg?.metaCloud?.phoneNumberId ||
+        users.length > 1 ||
+        users.some((u: any) => typeof u?.passwordHash === 'string' && u.passwordHash.length >= 10)
+    );
+
+    const cloudHasAnyData =
+      cloudBusinessCount > 0 ||
+      cloudHasSecretOrCustomConfig ||
+      cloudMutationMs > 0 ||
+      cloudRev > 0;
+
+    // 1. Cloud is completely empty -> push local state up to Firestore
+    if (!cloudHasAnyData) {
+      return {
+        action: 'push_to_cloud',
+        reason: 'empty_cloud',
+        localMutationAt,
+        cloudMutationAt,
+        localRevision: localRev,
+        cloudRevision: cloudRev
+      };
+    }
+
+    // 2. Fresh or unmutated local container OR empty local DB with populated cloud -> restore from cloud
+    if (
+      (localMutationMs === 0 && localRev === 0) ||
+      (localBusinessCount === 0 && cloudBusinessCount > 0 && localRev <= 1 && cloudRev >= localRev)
+    ) {
+      this.restoreCloudSyncBuckets(buckets, users, {
+        onlyFillMissing: false,
+        cloudMutationAt,
+        cloudSyncRevision: cloudRev
+      });
+      return {
+        action: 'restored_from_cloud',
+        reason: 'fresh_or_empty_local',
+        localMutationAt: this.db.lastMutationAt || '',
+        cloudMutationAt,
+        localRevision: this.db.syncRevision || 0,
+        cloudRevision: cloudRev
+      };
+    }
+
+    // 3. Firestore is strictly newer than local disk snapshot (e.g., container reverted after AI Studio edit)
+    if (
+      cloudMutationMs > localMutationMs + 1000 ||
+      (Math.abs(cloudMutationMs - localMutationMs) <= 1000 && cloudRev > localRev)
+    ) {
+      this.restoreCloudSyncBuckets(buckets, users, {
+        onlyFillMissing: false,
+        cloudMutationAt,
+        cloudSyncRevision: cloudRev
+      });
+      return {
+        action: 'restored_from_cloud',
+        reason: 'cloud_newer',
+        localMutationAt: this.db.lastMutationAt || '',
+        cloudMutationAt,
+        localRevision: this.db.syncRevision || 0,
+        cloudRevision: cloudRev
+      };
+    }
+
+    // 4. Local is newer or equal -> backfill any missing secrets/user hashes without clobbering newer local edits
+    const localMissingDsKey = !decryptSecretAtRest(this.db.integrations.deepseek?.apiKey) && !getEnvDeepSeekKey();
+    const localMissingPlacesKey = !this.db.integrations.googlePlaces?.apiKey?.trim() && !getEnvPlacesKey();
+    const localMissingAsaasKey = !this.db.integrations.asaas?.apiKey?.trim();
+    const localAdminNeedsHash = this.db.users.some(
+      (u) => u.role === 'admin' && !u.passwordHash
+    );
+
+    if (
+      (cfg?.encryptedVault && (localMissingDsKey || localMissingPlacesKey || localMissingAsaasKey)) ||
+      (localAdminNeedsHash && users.some((u: any) => typeof u?.passwordHash === 'string' && u.passwordHash.length >= 10)) ||
+      (cfg?.userGoogleLinks && Object.keys(cfg.userGoogleLinks).length > 0)
+    ) {
+      this.restoreCloudSyncBuckets(buckets, users, { onlyFillMissing: true });
+    }
+
+    if (localMutationMs > cloudMutationMs + 1000 || localRev > cloudRev) {
+      return {
+        action: 'push_to_cloud',
+        reason: 'local_newer',
+        localMutationAt,
+        cloudMutationAt,
+        localRevision: localRev,
+        cloudRevision: cloudRev
+      };
+    }
+
+    return {
+      action: 'in_sync',
+      reason: 'timestamps_matched',
+      localMutationAt,
+      cloudMutationAt,
+      localRevision: localRev,
+      cloudRevision: cloudRev
+    };
   }
 
   // Dashboard aggregated metrics

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, FileText, Plus, Trash2, DollarSign } from 'lucide-react';
 import { Proposal, ProposalItem, Lead } from '../../types';
+import { DateInputBR } from '../DateInputBR';
+import { getLocalIsoDate } from '../../utils/dateFormat';
 
 interface ProposalModalProps {
   initialLead?: Lead | null;
@@ -23,9 +25,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
   );
   const [summary, setSummary] = useState('');
   const [deliveryDays, setDeliveryDays] = useState(14);
-  const [validUntil, setValidUntil] = useState(
-    new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10)
-  );
+  const [validUntil, setValidUntil] = useState(getLocalIsoDate(15));
   const [paymentTerms, setPaymentTerms] = useState('A combinar');
   const [items, setItems] = useState<ProposalItem[]>([
     {
@@ -224,10 +224,9 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
             </div>
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Válido Até</label>
-              <input
-                type="date"
+              <DateInputBR
                 value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
+                onChange={setValidUntil}
                 className="w-full bg-[#090B10] border border-slate-700 rounded-lg p-2 text-white font-mono"
               />
             </div>

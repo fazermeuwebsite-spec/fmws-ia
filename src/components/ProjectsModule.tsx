@@ -16,6 +16,7 @@ import { KanbanBoard } from './kanban/KanbanBoard';
 import { StageCustomizerModal } from './kanban/StageCustomizerModal';
 import { getKanbanTheme } from './kanban/kanbanColors';
 import { ProjectDetailModal } from './modals/ProjectDetailModal';
+import { formatDateBR } from '../utils/dateFormat';
 
 interface ProjectsModuleProps {
   projects: Project[];
@@ -123,7 +124,7 @@ export const ProjectsModule: React.FC<ProjectsModuleProps> = ({
           </span>
           <span className="text-slate-400 font-mono flex items-center gap-1 shrink-0">
             <Clock size={11} className="text-[#D4A72C]" />
-            {proj.deadline || 'Sem prazo'}
+            {formatDateBR(proj.deadline, 'Sem prazo')}
           </span>
         </div>
 

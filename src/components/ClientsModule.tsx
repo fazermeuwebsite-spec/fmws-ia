@@ -13,6 +13,7 @@ import {
 import { Client, ClientService, ServiceProduct } from '../types';
 import { ClientServiceManager } from './ClientServiceManager';
 import { calculateClientMrr } from '../utils/clientServices';
+import { formatDateBR } from '../utils/dateFormat';
 
 interface ClientsModuleProps {
   clients: Client[];
@@ -296,7 +297,9 @@ export const ClientsModule: React.FC<ClientsModuleProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 text-[10px] block">Início Contrato</span>
-                  <span className="text-slate-300 font-mono tabular-nums">{selectedClient.contractStart}</span>
+                  <span className="text-slate-300 font-mono tabular-nums">
+                    {formatDateBR(selectedClient.contractStart, 'Não informado')}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[10px] block">Ações Rápidas</span>

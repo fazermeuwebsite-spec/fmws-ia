@@ -13,6 +13,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { SupportTicket } from '../types';
+import { formatDateBR, formatDateTimeBR } from '../utils/dateFormat';
 
 interface SupportModuleProps {
   tickets: SupportTicket[];
@@ -136,7 +137,7 @@ export const SupportModule: React.FC<SupportModuleProps> = ({
                   <h4 className="text-xs font-bold text-white mt-1 truncate">{t.subject}</h4>
                   <div className="text-[11px] text-slate-400 mt-0.5 flex items-center justify-between">
                     <span>{t.clientName}</span>
-                    <span>{new Date(t.createdAt).toLocaleDateString('pt-BR')}</span>
+                    <span className="font-mono">{formatDateBR(t.createdAt)}</span>
                   </div>
                 </div>
               );
@@ -199,7 +200,7 @@ export const SupportModule: React.FC<SupportModuleProps> = ({
                       <div key={i} className="p-3 rounded-lg bg-[#151926] border border-slate-800 text-xs space-y-1">
                         <div className="flex items-center justify-between text-[10px]">
                           <span className="font-bold text-[#D4A72C]">{n.author}</span>
-                          <span className="text-slate-400">{new Date(n.createdAt).toLocaleString('pt-BR')}</span>
+                          <span className="text-slate-400 font-mono">{formatDateTimeBR(n.createdAt, { includeSeconds: true })}</span>
                         </div>
                         <p className="text-slate-300">{n.text}</p>
                       </div>

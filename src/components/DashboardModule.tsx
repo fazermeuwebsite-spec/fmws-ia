@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Globe2
 } from 'lucide-react';
+import { formatDateBR } from '../utils/dateFormat';
 import { 
   Lead, 
   Client, 
@@ -237,7 +238,11 @@ export const DashboardModule: React.FC<DashboardProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Atendimento WhatsApp Oficial • Qualificação de Leads • Gemini 3.8
+                  Atendimento WhatsApp Oficial • Qualificação de Leads •{' '}
+                  <span className="text-slate-300 font-medium">
+                    {atendente?.provider === 'deepseek' ? 'DeepSeek' : 'Gemini'} •{' '}
+                    {atendente?.model || (atendente?.provider === 'deepseek' ? 'deepseek-flash' : 'gemini-4-hydrogen')}
+                  </span>
                 </p>
               </div>
             </div>
@@ -295,7 +300,11 @@ export const DashboardModule: React.FC<DashboardProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Auditoria de Empresas • Diagnóstico Técnico • Preparação de Pitch
+                  Auditoria de Empresas • Diagnóstico Técnico •{' '}
+                  <span className="text-slate-300 font-medium">
+                    {prospector?.provider === 'deepseek' ? 'DeepSeek' : 'Gemini'} •{' '}
+                    {prospector?.model || (prospector?.provider === 'deepseek' ? 'deepseek-flash' : 'gemini-4-hydrogen')}
+                  </span>
                 </p>
               </div>
             </div>
@@ -483,7 +492,7 @@ export const DashboardModule: React.FC<DashboardProps> = ({
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
                     <span>Cliente: <strong className="text-slate-300">{proj.clientName}</strong></span>
-                    <span>Prazo: {proj.deadline}</span>
+                    <span>Prazo: {formatDateBR(proj.deadline, 'Sem prazo')}</span>
                   </div>
                   {/* Progress bar */}
                   <div className="mt-2.5">

@@ -257,6 +257,7 @@ export async function callDeepSeekChat(params: {
 }): Promise<{
   ok: boolean;
   text: string;
+  modelUsed?: string;
   reasoningContent?: string;
   promptTokens?: number;
   completionTokens?: number;
@@ -269,19 +270,19 @@ export async function callDeepSeekChat(params: {
   transient: boolean;
 }> {
   const baseUrl = normalizeBaseUrl(params.baseUrl);
-  const model = params.model.trim() || 'deepseek-flash';
+  let activeModel = params.model.trim() || 'deepseek-flash';
   const maxTokens = Math.max(16, Math.min(8192, Math.floor(params.maxTokens || 1200)));
   const timeoutMs = Math.max(3000, Math.min(120000, Math.floor(params.timeoutMs || 25000)));
-  const isReasonerModel = /reasoner|r1/i.test(model);
 
-  const runFetch = async (useJsonFormat: boolean, includeTemperature: boolean) => {
+  const runFetch = async (targetModel: string, useJsonFormat: boolean, includeTemperature: boolean) => {
     const start = Date.now();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const isReasonerModel = /reasoner|r1/i.test(targetModel);
 
     try {
       const bodyPayload: Record<string, any> = {
-        model,
+        model: targetModel,
         messages: params.messages,
         max_tokens: maxTokens,
         stream: false
@@ -317,15 +318,43 @@ export async function callDeepSeekChat(params: {
   };
 
   try {
-    let attempt = await runFetch(Boolean(params.expectJson), true);
+    let attempt = await runFetch(activeModel, Boolean(params.expectJson), true);
+
+    // If a placeholder/preset model name (e.g., deepseek-flash / deepseek-v4-pro) returns HTTP 400
+    // "Model Not Exist", transparently map to the official live DeepSeek endpoint model.
+    if (!attempt.resp.ok && attempt.resp.status === 400) {
+      const errText = String(attempt.data?.error?.message || attempt.data?.message || '').toLowerCase();
+      const isModelNotExist =
+        errText.includes('model') &&
+        (errText.includes('not exist') ||
+          errText.includes('does not exist') ||
+          errText.includes('invalid') ||
+          errText.includes('unknown') ||
+          errText.includes('not found'));
+
+      if (isModelNotExist && activeModel !== 'deepseek-chat' && activeModel !== 'deepseek-reasoner') {
+        const preferredFallback = /pro|v4|reason|r1/i.test(activeModel)
+          ? 'deepseek-reasoner'
+          : 'deepseek-chat';
+        activeModel = preferredFallback;
+        attempt = await runFetch(activeModel, Boolean(params.expectJson), true);
+
+        if (!attempt.resp.ok && attempt.resp.status === 400 && activeModel === 'deepseek-reasoner') {
+          const retryErrText = String(
+            attempt.data?.error?.message || attempt.data?.message || ''
+          ).toLowerCase();
+          if (retryErrText.includes('model')) {
+            activeModel = 'deepseek-chat';
+            attempt = await runFetch(activeModel, Boolean(params.expectJson), true);
+          }
+        }
+      }
+    }
 
     // Some DeepSeek reasoning/preview models reject response_format or temperature with HTTP 400.
     // Retry once without those optional params before failing.
-    if (
-      !attempt.resp.ok &&
-      attempt.resp.status === 400 &&
-      (params.expectJson || !isReasonerModel)
-    ) {
+    const isReasonerNow = /reasoner|r1/i.test(activeModel);
+    if (!attempt.resp.ok && attempt.resp.status === 400 && (params.expectJson || !isReasonerNow)) {
       const errText = String(attempt.data?.error?.message || attempt.data?.message || '').toLowerCase();
       if (
         errText.includes('response_format') ||
@@ -333,7 +362,7 @@ export async function callDeepSeekChat(params: {
         errText.includes('json_object') ||
         errText.includes('not support')
       ) {
-        attempt = await runFetch(false, false);
+        attempt = await runFetch(activeModel, false, false);
       }
     }
 
@@ -344,6 +373,7 @@ export async function callDeepSeekChat(params: {
       return {
         ok: false,
         text: '',
+        modelUsed: activeModel,
         latencyMs,
         httpStatus: resp.status,
         errorCode: classified.errorCode,
@@ -373,6 +403,7 @@ export async function callDeepSeekChat(params: {
     return {
       ok: true,
       text: content,
+      modelUsed: activeModel,
       reasoningContent,
       promptTokens,
       completionTokens,
@@ -387,6 +418,7 @@ export async function callDeepSeekChat(params: {
     return {
       ok: false,
       text: '',
+      modelUsed: activeModel,
       latencyMs,
       errorCode: isAbort ? 'TIMEOUT' : 'NETWORK_ERROR',
       errorStatus: 'erro',
@@ -469,21 +501,38 @@ export async function testDeepSeekIntegration(options?: {
   // 1) Fetch GET /models first so dynamic model catalog updates whenever possible
   const modelsRes = await fetchDeepSeekModels({ apiKey: effectiveKey, baseUrl });
 
+  let resolvedModelToTest = modelToTest;
+  if (
+    modelsRes.ok &&
+    modelsRes.liveModels.length > 0 &&
+    !modelsRes.liveModels.includes(resolvedModelToTest)
+  ) {
+    if (/pro|v4|reason|r1/i.test(resolvedModelToTest) && modelsRes.liveModels.includes('deepseek-reasoner')) {
+      resolvedModelToTest = 'deepseek-reasoner';
+    } else if (modelsRes.liveModels.includes('deepseek-chat')) {
+      resolvedModelToTest = 'deepseek-chat';
+    } else {
+      resolvedModelToTest = modelsRes.liveModels[0];
+    }
+  }
+
   // 2) Run minimal real chat completion check (catches 402 Insufficient Balance, 401, invalid model, etc.)
   const chatRes = await callDeepSeekChat({
     apiKey: effectiveKey,
     baseUrl,
-    model: modelToTest,
+    model: resolvedModelToTest,
     messages: [{ role: 'user', content: 'Responda apenas com a palavra: OK' }],
     maxTokens: 20,
     timeoutMs,
     expectJson: false
   });
 
+  const finalModel = chatRes.modelUsed || resolvedModelToTest;
+
   if (chatRes.ok) {
     storage.recordDeepSeekUsage({
       agentId: 'test',
-      model: modelToTest,
+      model: finalModel,
       status: 'sucesso',
       httpStatus: chatRes.httpStatus,
       promptTokens: chatRes.promptTokens,
@@ -498,7 +547,7 @@ export async function testDeepSeekIntegration(options?: {
         ...latestDs,
         enabled: options?.enabled ?? true,
         baseUrl,
-        model: modelToTest,
+        model: finalModel,
         timeoutMs,
         maxTokens,
         quotaLimit,
@@ -511,7 +560,7 @@ export async function testDeepSeekIntegration(options?: {
     return {
       valid: true,
       status: 'conectado',
-      model: modelToTest,
+      model: finalModel,
       baseUrl,
       latencyMs: chatRes.latencyMs,
       promptTokens: chatRes.promptTokens,
@@ -520,7 +569,7 @@ export async function testDeepSeekIntegration(options?: {
       models: modelsRes.models,
       modelsSource: modelsRes.source,
       integrations: updatedIntegrations,
-      message: `API DeepSeek (${modelToTest}) validada e conectada em ${chatRes.latencyMs}ms (resposta: "${chatRes.text || 'OK'}"${
+      message: `API DeepSeek (${finalModel}) validada e conectada em ${chatRes.latencyMs}ms (resposta: "${chatRes.text || 'OK'}"${
         chatRes.totalTokens ? `, ${chatRes.totalTokens} tokens` : ''
       }).`
     };
@@ -881,9 +930,10 @@ async function runSingleProviderAttempt(
     });
 
     if (res.ok) {
+      const usedModel = res.modelUsed || model;
       storage.recordDeepSeekUsage({
         agentId: spec.agentId,
-        model,
+        model: usedModel,
         status: 'sucesso',
         httpStatus: res.httpStatus,
         promptTokens: res.promptTokens,
@@ -902,7 +952,7 @@ async function runSingleProviderAttempt(
       return {
         ok: true,
         provider: 'deepseek',
-        model,
+        model: usedModel,
         text: res.text,
         reasoningContent: res.reasoningContent,
         promptTokens: res.promptTokens,
@@ -1049,8 +1099,9 @@ async function runSingleProviderAttempt(
       msg.includes('403') ||
       msg.includes('API_KEY_INVALID') ||
       msg.includes('PERMISSION_DENIED');
+    const isNotFound = msg.includes('404') || msg.includes('NOT_FOUND');
     const is5xx = /\b50[0-9]\b/.test(msg) || msg.toLowerCase().includes('unavailable');
-    const httpStatus = isQuota ? 429 : isAuth ? 403 : is5xx ? 503 : 500;
+    const httpStatus = isQuota ? 429 : isAuth ? 403 : isNotFound ? 404 : is5xx ? 503 : 500;
 
     const latestGemini = storage.getIntegrations().gemini;
     storage.updateIntegrations({
@@ -1059,6 +1110,10 @@ async function runSingleProviderAttempt(
         status: isQuota ? 'limite_atingido' : 'erro'
       }
     });
+
+    const friendlyError = isNotFound
+      ? `Modelo Gemini "${safeGeminiModel}" indisponível ou não encontrado (${msg}). Selecione "gemini-4-hydrogen" ou "gemini-3.1-flash-lite" no agente.`
+      : `Erro na execução do modelo Gemini (${safeGeminiModel}): ${msg}`;
 
     return {
       ok: false,
@@ -1069,7 +1124,7 @@ async function runSingleProviderAttempt(
       httpStatus,
       status: isQuota ? 'limite_atingido' : 'erro',
       errorCode: `HTTP_${httpStatus}`,
-      errorMessage: `Erro na execução do modelo Gemini (${safeGeminiModel}): ${msg}`,
+      errorMessage: friendlyError,
       transient: isQuota || is5xx
     };
   }
@@ -1081,12 +1136,59 @@ async function executeAgentWithOptionalFallback(spec: ProviderCallSpec): Promise
   const agent = storage.getAIAgents().find((a) => a.id === spec.agentId);
   const integrations = storage.getIntegrations();
 
-  const primaryProvider: AIProvider = agent?.provider === 'deepseek' ? 'deepseek' : 'gemini';
-  const primaryModel =
+  const isGeminiReady = Boolean(getAIClient() && integrations.gemini?.enabled);
+  const isDeepSeekReady = Boolean(storage.getEffectiveDeepSeekKey() && integrations.deepseek?.enabled);
+
+  let primaryProvider: AIProvider = agent?.provider === 'deepseek' ? 'deepseek' : 'gemini';
+  let primaryModel =
     (agent?.model && agent.model.trim()) ||
     (primaryProvider === 'deepseek'
       ? integrations.deepseek.model || 'deepseek-flash'
       : integrations.gemini.model || 'gemini-4-hydrogen');
+
+  // Auto-route cleanly whenever an agent still points to a disabled/unconfigured provider
+  // while the alternate AI provider IS enabled and configured.
+  if (primaryProvider === 'gemini' && !isGeminiReady && isDeepSeekReady) {
+    const prevPrimaryModel = primaryModel;
+    primaryProvider = 'deepseek';
+    primaryModel =
+      agent?.fallbackProvider === 'deepseek' &&
+      agent.fallbackModel?.trim() &&
+      !agent.fallbackModel.startsWith('gemini-')
+        ? agent.fallbackModel.trim()
+        : integrations.deepseek?.model || 'deepseek-flash';
+
+    if (agent) {
+      storage.updateAIAgent({
+        ...agent,
+        provider: 'deepseek',
+        model: primaryModel,
+        fallbackProvider: 'gemini',
+        fallbackModel: prevPrimaryModel,
+        status: agent.status === 'pausado' ? 'pausado' : 'ativo'
+      });
+    }
+  } else if (primaryProvider === 'deepseek' && !isDeepSeekReady && isGeminiReady) {
+    const prevPrimaryModel = primaryModel;
+    primaryProvider = 'gemini';
+    primaryModel =
+      agent?.fallbackProvider === 'gemini' &&
+      agent.fallbackModel?.trim() &&
+      !agent.fallbackModel.toLowerCase().includes('deepseek')
+        ? agent.fallbackModel.trim()
+        : integrations.gemini?.model || 'gemini-4-hydrogen';
+
+    if (agent) {
+      storage.updateAIAgent({
+        ...agent,
+        provider: 'gemini',
+        model: primaryModel,
+        fallbackProvider: 'deepseek',
+        fallbackModel: prevPrimaryModel,
+        status: agent.status === 'pausado' ? 'pausado' : 'ativo'
+      });
+    }
+  }
 
   const primaryAttempt = await runSingleProviderAttempt(primaryProvider, primaryModel, spec);
 
@@ -1105,19 +1207,28 @@ async function executeAgentWithOptionalFallback(spec: ProviderCallSpec): Promise
     return { ...primaryAttempt, fallbackUsed: false };
   }
 
-  // Fallback runs ONLY if explicitly authorized on the agent, targets the secondary provider,
-  // and primary failed due to unavailability / quota / rate limit / timeout (at most 1 attempt).
-  const fallbackProvider = agent?.fallbackProvider;
+  // Fallback runs ONLY if explicitly authorized on the agent, targets the secondary provider
+  // that is genuinely enabled+configured, and primary failed due to unavailability/quota/timeout.
+  const latestAgent = storage.getAIAgents().find((a) => a.id === spec.agentId) || agent;
+  const fallbackProvider = latestAgent?.fallbackProvider;
+  const isFallbackReady =
+    fallbackProvider === 'deepseek'
+      ? isDeepSeekReady
+      : fallbackProvider === 'gemini'
+      ? isGeminiReady
+      : false;
+
   const fallbackAuthorized = Boolean(
-    agent?.fallbackEnabled === true &&
+    latestAgent?.fallbackEnabled === true &&
       fallbackProvider &&
       fallbackProvider !== primaryProvider &&
+      isFallbackReady &&
       primaryAttempt.transient
   );
 
   if (fallbackAuthorized && fallbackProvider) {
     const fallbackModel =
-      (agent?.fallbackModel && agent.fallbackModel.trim()) ||
+      (latestAgent?.fallbackModel && latestAgent.fallbackModel.trim()) ||
       (fallbackProvider === 'deepseek'
         ? integrations.deepseek.model || 'deepseek-flash'
         : integrations.gemini.model || 'gemini-4-hydrogen');

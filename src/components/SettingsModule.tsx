@@ -35,9 +35,11 @@ import {
   firestoreDatabaseId,
   signInFirebaseWithGoogle,
   syncSnapshotToFirestore,
-  loadSnapshotFromFirestore
+  loadSnapshotFromFirestore,
+  type FirebaseUser
 } from '../firebase';
 import { SystemIntegrations, ServiceProduct, User, UserRole, WhatsAppIntegrationLog } from '../types';
+import { formatDateTimeBR } from '../utils/dateFormat';
 
 const OFFICIAL_PHP_WEBHOOK_URL = 'https://crm.fazermeuwebsite.com.br/api/webhooks/whatsapp.php';
 
@@ -62,6 +64,9 @@ interface SettingsModuleProps {
   onCloudRestored?: () => Promise<void>;
   initialTab?: 'integrations' | 'gemini' | 'deepseek' | 'places' | 'services' | 'users';
   firebaseWorkspaceId?: string;
+  firebaseUser?: FirebaseUser | null;
+  cloudSyncStatus?: 'disconnected' | 'syncing' | 'synced' | 'error';
+  onConnectFirebase?: () => Promise<void>;
   firestoreWhatsAppLogs?: WhatsAppIntegrationLog[];
 }
 
@@ -100,6 +105,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   onCloudRestored,
   initialTab,
   firebaseWorkspaceId = '',
+  firebaseUser = null,
+  cloudSyncStatus = 'disconnected',
+  onConnectFirebase,
   firestoreWhatsAppLogs = []
 }) => {
   const [activeTab, setActiveTab] = useState<'integrations' | 'gemini' | 'deepseek' | 'places' | 'services' | 'users'>(
@@ -646,6 +654,54 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     }
   };
 
+  const handleToggleGeminiEnabled = async (nextEnabled: boolean) => {
+    setFeedback(null);
+    setGeminiEnabled(nextEnabled);
+    try {
+      await onUpdateIntegrations({
+        gemini: {
+          enabled: nextEnabled
+        }
+      });
+      setFeedback({
+        type: 'success',
+        text: nextEnabled
+          ? 'API Google Gemini ativada no servidor.'
+          : 'API Google Gemini desativada no servidor.'
+      });
+    } catch (err: any) {
+      setGeminiEnabled(!nextEnabled);
+      setFeedback({
+        type: 'error',
+        text: err?.message || 'Erro ao alterar ativação da API Gemini.'
+      });
+    }
+  };
+
+  const handleToggleDeepSeekEnabled = async (nextEnabled: boolean) => {
+    setFeedback(null);
+    setDeepseekEnabled(nextEnabled);
+    try {
+      await onUpdateIntegrations({
+        deepseek: {
+          enabled: nextEnabled
+        }
+      });
+      setFeedback({
+        type: 'success',
+        text: nextEnabled
+          ? 'DeepSeek API ativada no servidor.'
+          : 'DeepSeek API desativada no servidor.'
+      });
+    } catch (err: any) {
+      setDeepseekEnabled(!nextEnabled);
+      setFeedback({
+        type: 'error',
+        text: err?.message || 'Erro ao alterar ativação da DeepSeek API.'
+      });
+    }
+  };
+
   const handleTestGemini = async () => {
     setFeedback(null);
     setTestingGemini(true);
@@ -654,19 +710,27 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       const res = await api.testGemini(geminiModel);
       if (res.integrations) {
         await onIntegrationsUpdated?.(res.integrations);
+        setGeminiEnabled(Boolean(res.integrations.gemini?.enabled ?? true));
       } else {
-        await onUpdateIntegrations({});
+        const latest = await api.getIntegrations();
+        await onIntegrationsUpdated?.(latest);
+        setGeminiEnabled(Boolean(latest.gemini?.enabled ?? true));
       }
       if (typeof res.latencyMs === 'number') {
         setGeminiLastLatencyMs(res.latencyMs);
       }
-      setGeminiEnabled(true);
       setFeedback({
         type: 'success',
         text: res.message || `API Gemini (${geminiModel}) validada e conectada com sucesso!`
       });
     } catch (err: any) {
-      await onUpdateIntegrations({});
+      try {
+        const latest = await api.getIntegrations();
+        await onIntegrationsUpdated?.(latest);
+        setGeminiEnabled(Boolean(latest.gemini?.enabled));
+      } catch {
+        // ignore refresh error
+      }
       setFeedback({
         type: 'error',
         text: err.message || 'Não foi possível validar a conexão com a API Gemini no servidor.'
@@ -849,6 +913,20 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       } catch {
         // ignore if already linked or transient
       }
+      // Always reconcile against Firestore first so stale local disk never overwrites newer cloud saves
+      const cloudSnap = await loadSnapshotFromFirestore();
+      const reconcileResult = await api.reconcileCloudSnapshot(cloudSnap);
+      if (reconcileResult.action === 'restored_from_cloud') {
+        if (onCloudRestored) {
+          await onCloudRestored();
+        }
+        setFeedback({
+          type: 'success',
+          text: 'Havia alterações mais recentes na nuvem: seus dados do Firestore foram restaurados no servidor antes de sincronizar.'
+        });
+        return;
+      }
+
       const snapshot = await api.exportCloudSnapshot();
       const result = await syncSnapshotToFirestore(snapshot);
       setFeedback({
@@ -1113,7 +1191,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               <div className="flex flex-wrap items-center gap-3">
                 {integrations.metaCloud.lastSyncedAt && (
                   <span className="text-[10px] text-slate-400 font-mono">
-                    Última sincronização: {new Date(integrations.metaCloud.lastSyncedAt).toLocaleString('pt-BR')}
+                    Última sincronização: {formatDateTimeBR(integrations.metaCloud.lastSyncedAt, { includeSeconds: true })}
                   </span>
                 )}
                 <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
@@ -1828,8 +1906,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     type="checkbox"
                     checked={geminiEnabled}
                     onChange={(e) => {
-                      dirtySectionsRef.current.gemini = true;
-                      setGeminiEnabled(e.target.checked);
+                      void handleToggleGeminiEnabled(e.target.checked);
                     }}
                     className="accent-[#D4A72C]"
                   />
@@ -1934,8 +2011,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     type="checkbox"
                     checked={deepseekEnabled}
                     onChange={(e) => {
-                      dirtySectionsRef.current.deepseek = true;
-                      setDeepseekEnabled(e.target.checked);
+                      void handleToggleDeepSeekEnabled(e.target.checked);
                     }}
                     className="accent-[#D4A72C]"
                   />
@@ -2056,30 +2132,75 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             {savingIntegrations ? 'Salvando no servidor...' : 'Salvar Configurações no Servidor'}
           </button>
 
-          {/* Firestore Cloud Persistence & Sync (Starter Tier) */}
+          {/* Firestore Cloud Persistence & Sync */}
           <div className="p-5 rounded-xl bg-[#11141E] border border-slate-800 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    firebaseUser?.emailVerified
+                      ? cloudSyncStatus === 'error'
+                        ? 'bg-rose-500/10 text-rose-400'
+                        : 'bg-emerald-500/10 text-emerald-400'
+                      : 'bg-amber-500/10 text-amber-400'
+                  }`}
+                >
                   <Database size={16} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Persistência em Nuvem — Firebase Firestore (Conectado)</h3>
+                  <h3 className="text-sm font-bold text-white">
+                    Persistência em Nuvem — Firebase Firestore (
+                    {firebaseUser?.emailVerified
+                      ? cloudSyncStatus === 'error'
+                        ? 'Erro no Sync'
+                        : 'Sincronização Automática Ativa'
+                      : 'Aguardando Vínculo Google'}
+                    )
+                  </h3>
                   <p className="text-xs text-slate-400">
-                    Projeto <code className="text-slate-300">{firestoreProjectId}</code> • Banco <code className="text-slate-300">{firestoreDatabaseId}</code>
+                    Projeto <code className="text-slate-300">{firestoreProjectId}</code> • Banco{' '}
+                    <code className="text-slate-300">{firestoreDatabaseId}</code>
+                    {firebaseUser?.emailVerified && firebaseUser.email
+                      ? ` • Conta ${firebaseUser.email}`
+                      : ''}
                   </p>
                 </div>
               </div>
-              <span className="text-[10px] px-2.5 py-0.5 rounded font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Firestore Conectado
+              <span
+                className={`text-[10px] px-2.5 py-0.5 rounded font-bold uppercase border ${
+                  firebaseUser?.emailVerified
+                    ? cloudSyncStatus === 'error'
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                }`}
+              >
+                {firebaseUser?.emailVerified
+                  ? cloudSyncStatus === 'syncing'
+                    ? 'Salvando Nuvem...'
+                    : cloudSyncStatus === 'error'
+                    ? 'Erro no Sync'
+                    : 'Nuvem Sincronizada'
+                  : 'Sync Pendente (Local Efêmero)'}
               </span>
             </div>
 
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              No ambiente Cloud Run atual, o servidor armazena usuários (hash <code className="text-slate-300">bcrypt</code>), sessões e registros em <code className="text-slate-300">/data/db.json</code> (persistente entre reinicializações do processo, mas efêmero em novas publicações do container). Use os botões abaixo para sincronizar ou restaurar seus registros do CRM com segurança no Firestore via conta Google verificada.
+              O servidor local usa <code className="text-slate-300">data/db.json</code> (que pode voltar ao snapshot base quando o AI Studio edita código ou reinicia o ambiente). Quando sua conta Google verificada está conectada, o sistema reconcilia timestamps automaticamente ao abrir, restaura versões mais novas da nuvem e salva cada alteração no Firestore.
             </p>
 
             <div className="flex flex-wrap items-center gap-2.5">
+              {!firebaseUser?.emailVerified && onConnectFirebase && (
+                <button
+                  type="button"
+                  onClick={onConnectFirebase}
+                  disabled={cloudSyncing}
+                  className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#D4A72C] to-[#B88E1E] text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Database size={14} />
+                  <span>Conectar Google & Reconciliar Nuvem</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleSyncToFirestore}
@@ -2087,7 +2208,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <UploadCloud size={14} className="text-[#D4A72C]" />
-                <span>{cloudSyncing ? 'Sincronizando...' : 'Sincronizar Backup para Firestore'}</span>
+                <span>{cloudSyncing ? 'Sincronizando...' : 'Reconciliar & Salvar para Firestore'}</span>
               </button>
               <button
                 type="button"
@@ -2143,8 +2264,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   type="checkbox"
                   checked={geminiEnabled}
                   onChange={(e) => {
-                    dirtySectionsRef.current.gemini = true;
-                    setGeminiEnabled(e.target.checked);
+                    void handleToggleGeminiEnabled(e.target.checked);
                   }}
                   className="accent-[#D4A72C] w-4 h-4"
                 />
@@ -2313,8 +2433,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   type="checkbox"
                   checked={deepseekEnabled}
                   onChange={(e) => {
-                    dirtySectionsRef.current.deepseek = true;
-                    setDeepseekEnabled(e.target.checked);
+                    void handleToggleDeepSeekEnabled(e.target.checked);
                   }}
                   className="accent-[#D4A72C] w-4 h-4"
                 />
@@ -2571,7 +2690,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 </div>
                 {integrations.deepseek?.modelsUpdatedAt && (
                   <span className="text-[10px] text-slate-500 font-mono">
-                    Modelos atualizados: {new Date(integrations.deepseek.modelsUpdatedAt).toLocaleString('pt-BR')}
+                    Modelos atualizados: {formatDateTimeBR(integrations.deepseek.modelsUpdatedAt, { includeSeconds: true })}
                   </span>
                 )}
               </div>
@@ -2598,7 +2717,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       {integrations.deepseek.usageHistory.map((log) => (
                         <tr key={log.id} className="text-slate-300">
                           <td className="py-1.5 pr-3 font-mono text-slate-400 whitespace-nowrap">
-                            {new Date(log.timestamp).toLocaleString('pt-BR')}
+                            {formatDateTimeBR(log.timestamp, { includeSeconds: true })}
                           </td>
                           <td className="py-1.5 pr-3 font-mono uppercase text-[10px]">{log.agentId}</td>
                           <td className="py-1.5 pr-3 font-mono text-white">{log.model}</td>

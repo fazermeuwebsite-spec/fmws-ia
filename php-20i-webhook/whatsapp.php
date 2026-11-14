@@ -132,7 +132,7 @@ if (function_exists('fastcgi_finish_request')) {
 // 3) PROCESSAMENTO IMEDIATO DO JOB APÓS LIBERAR CONEXÃO DA META
 // -------------------------------------------------------------------------
 @ignore_user_abort(true);
-@set_time_limit(45);
+@set_time_limit(90);
 
 $job = $storage->claimJob($jobId);
 if ($job === null) {

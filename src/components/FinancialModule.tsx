@@ -16,6 +16,7 @@ import {
   Building2
 } from 'lucide-react';
 import { FinancialTransaction } from '../types';
+import { formatDateBR } from '../utils/dateFormat';
 
 interface FinancialModuleProps {
   transactions: FinancialTransaction[];
@@ -212,10 +213,10 @@ export const FinancialModule: React.FC<FinancialModuleProps> = ({
                   <td className="py-3 px-4 text-slate-400 capitalize">
                     {tx.category}
                   </td>
-                  <td className="py-3 px-4 text-slate-400">
-                    <div>{tx.dueDate}</div>
+                  <td className="py-3 px-4 text-slate-400 font-mono tabular-nums">
+                    <div>{formatDateBR(tx.dueDate)}</div>
                     {tx.paymentDate && (
-                      <div className="text-[10px] text-emerald-400">Pago em {tx.paymentDate}</div>
+                      <div className="text-[10px] text-emerald-400">Pago em {formatDateBR(tx.paymentDate)}</div>
                     )}
                   </td>
                   <td className="py-3 px-4 font-mono font-bold text-white">

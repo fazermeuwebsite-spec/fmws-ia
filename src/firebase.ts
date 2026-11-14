@@ -134,9 +134,94 @@ export async function signOutFirebase() {
 }
 
 export interface CloudSyncSnapshot {
+  meta?: {
+    lastMutationAt?: string;
+    syncRevision?: number;
+    exportedAt?: string;
+  };
   users: any[];
   buckets: Record<string, any[]>;
   deletedWhatsAppIds?: Array<{ id: string; deletedAt: string }>;
+  cloudUpdatedAt?: string;
+}
+
+function getUtf8ByteLength(value: unknown): number {
+  const str = JSON.stringify(value) || '';
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(str).length;
+  }
+  return str.length * 2;
+}
+
+function compactBucketItemsForFirestore(bucketKey: string, rawItems: any): any[] {
+  const safeArr = Array.isArray(rawItems) ? stripUndefinedDeep(rawItems.slice(0, 500)) : [];
+
+  if (bucketKey === 'whatsappConversations') {
+    const compactConvs = (msgLimit: number, hoLimit: number) =>
+      safeArr.map((conv: any) => ({
+        ...conv,
+        messages: Array.isArray(conv?.messages) ? conv.messages.slice(-msgLimit) : [],
+        handoverHistory: Array.isArray(conv?.handoverHistory) ? conv.handoverHistory.slice(-hoLimit) : []
+      }));
+
+    let compacted = compactConvs(15, 15);
+    if (getUtf8ByteLength(compacted) > 700_000) {
+      compacted = compactConvs(3, 5);
+    }
+    if (getUtf8ByteLength(compacted) > 700_000) {
+      compacted = compactConvs(0, 0);
+    }
+    if (getUtf8ByteLength(compacted) > 850_000) {
+      const trimmed: any[] = [];
+      for (const item of compacted) {
+        if (getUtf8ByteLength([...trimmed, item]) > 850_000) break;
+        trimmed.push(item);
+      }
+      return trimmed;
+    }
+    return compacted;
+  }
+
+  if (bucketKey === 'whatsappLogs') {
+    const capped = safeArr.slice(0, 30);
+    if (getUtf8ByteLength(capped) <= 400_000) return capped;
+    const trimmed: any[] = [];
+    for (const item of capped) {
+      if (getUtf8ByteLength([...trimmed, item]) > 400_000) break;
+      trimmed.push(item);
+    }
+    return trimmed;
+  }
+
+  if (getUtf8ByteLength(safeArr) <= 850_000) {
+    return safeArr;
+  }
+
+  const stripped = safeArr.map((item: any) => {
+    if (!item || typeof item !== 'object') return item;
+    const copy = { ...item };
+    if (typeof copy.aiInsights === 'string' && copy.aiInsights.length > 400) {
+      copy.aiInsights = copy.aiInsights.slice(0, 400);
+    }
+    if (typeof copy.pitchDraft === 'string' && copy.pitchDraft.length > 400) {
+      copy.pitchDraft = copy.pitchDraft.slice(0, 400);
+    }
+    if (typeof copy.notes === 'string' && copy.notes.length > 600) {
+      copy.notes = copy.notes.slice(0, 600);
+    }
+    return copy;
+  });
+
+  if (getUtf8ByteLength(stripped) <= 850_000) {
+    return stripped;
+  }
+
+  const trimmed: any[] = [];
+  for (const item of stripped) {
+    if (getUtf8ByteLength([...trimmed, item]) > 850_000) break;
+    trimmed.push(item);
+  }
+  return trimmed;
 }
 
 let activeFirestoreSyncChain: Promise<void> = Promise.resolve();
@@ -283,7 +368,7 @@ async function executeAtomicFirestoreSync(snapshot: CloudSyncSnapshot): Promise<
     const bucketPath = `workspaces/${workspaceId}/buckets/${bucketKey}`;
     const bRef = doc(db, 'workspaces', workspaceId, 'buckets', bucketKey);
     const existingBucket = existingBucketsMap.get(bucketKey);
-    const sanitizedItems = Array.isArray(items) ? stripUndefinedDeep(items.slice(0, 500)) : [];
+    const sanitizedItems = compactBucketItemsForFirestore(bucketKey, items);
 
     if (existingBucket && existingBucket.createdAt) {
       ops.push({
@@ -730,6 +815,7 @@ export async function loadSnapshotFromFirestore(): Promise<CloudSyncSnapshot> {
   }
 
   const buckets: Record<string, any[]> = {};
+  let latestCloudUpdatedMs = 0;
   try {
     const bucketsSnap = await getDocs(
       query(collection(db, 'workspaces', workspaceId, 'buckets'), where('ownerId', '==', workspaceId))
@@ -738,6 +824,12 @@ export async function loadSnapshotFromFirestore(): Promise<CloudSyncSnapshot> {
       const data = d.data();
       if (data?.bucketKey && Array.isArray(data.items)) {
         buckets[data.bucketKey] = data.items;
+      }
+      if (data?.updatedAt && typeof data.updatedAt.toDate === 'function') {
+        const ms = data.updatedAt.toDate().getTime();
+        if (Number.isFinite(ms) && ms > latestCloudUpdatedMs) {
+          latestCloudUpdatedMs = ms;
+        }
       }
     }
   } catch (err) {
@@ -763,7 +855,11 @@ export async function loadSnapshotFromFirestore(): Promise<CloudSyncSnapshot> {
     });
   }
 
-  return { users, buckets };
+  return {
+    users,
+    buckets,
+    ...(latestCloudUpdatedMs > 0 ? { cloudUpdatedAt: new Date(latestCloudUpdatedMs).toISOString() } : {})
+  };
 }
 
 // =========================================================================

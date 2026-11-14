@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { KanbanStageConfig, Project, ProjectStage, ProjectTask } from '../../types';
 import { getKanbanTheme } from '../kanban/kanbanColors';
+import { formatDateBR, formatDateTimeBR } from '../../utils/dateFormat';
 
 interface ProjectDetailModalProps {
   project: Project;
@@ -183,7 +184,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
               <span className="text-[10px] text-slate-400 block mb-1">Prazo de Entrega</span>
               <span className="text-white font-mono font-bold flex items-center gap-1.5">
                 <Clock size={12} className="text-[#D4A72C]" />
-                {project.deadline || 'Não definido'}
+                {formatDateBR(project.deadline, 'Não definido')}
               </span>
             </div>
 
@@ -343,7 +344,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                   >
                     <span className="text-slate-200 text-[11px]">{entry.action}</span>
                     <span className="text-[10px] text-slate-500 font-mono shrink-0">
-                      {entry.user} • {new Date(entry.date).toLocaleString('pt-BR')}
+                      {entry.user} • {formatDateTimeBR(entry.date, { includeSeconds: true })}
                     </span>
                   </div>
                 ))}

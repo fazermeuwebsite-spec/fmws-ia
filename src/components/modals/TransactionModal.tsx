@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, DollarSign, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { FinancialTransaction } from '../../types';
+import { DateInputBR } from '../DateInputBR';
+import { getLocalIsoDate } from '../../utils/dateFormat';
 
 interface TransactionModalProps {
   onClose: () => void;
@@ -13,7 +15,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onS
   const [type, setType] = useState<'receita' | 'despesa'>('receita');
   const [category, setCategory] = useState<FinancialTransaction['category']>('desenvolvimento');
   const [value, setValue] = useState('');
-  const [dueDate, setDueDate] = useState(new Date().toISOString().substring(0, 10));
+  const [dueDate, setDueDate] = useState(getLocalIsoDate());
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'boleto' | 'cartao'>('pix');
   const [recurring, setRecurring] = useState(false);
   const [status, setStatus] = useState<'pago' | 'pendente'>('pendente');
@@ -30,7 +32,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onS
       paymentMethod,
       recurring,
       status,
-      paymentDate: status === 'pago' ? new Date().toISOString().substring(0, 10) : undefined
+      paymentDate: status === 'pago' ? getLocalIsoDate() : undefined
     });
     onClose();
   };
@@ -144,10 +146,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ onClose, onS
 
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Data de Vencimento</label>
-              <input
-                type="date"
+              <DateInputBR
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={setDueDate}
                 required
                 className="w-full bg-[#090B10] border border-slate-700 rounded-lg p-2 text-white font-mono"
               />

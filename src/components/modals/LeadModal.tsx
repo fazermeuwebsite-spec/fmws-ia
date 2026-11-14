@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Users, Trash2, History, MessageSquarePlus, AlertTriangle } from 'lucide-react';
 import { KanbanStageConfig, Lead, LeadStatus, PriorityLevel } from '../../types';
+import { formatDateTimeBR } from '../../utils/dateFormat';
 
 interface LeadModalProps {
   lead?: Lead | null;
@@ -375,7 +376,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                       <div key={n.id} className="p-2 rounded bg-slate-900/70 border border-slate-800/80">
                         <p className="text-slate-200 text-[11px]">{n.text}</p>
                         <div className="text-[10px] text-slate-500 mt-1">
-                          {n.author} • {new Date(n.createdAt).toLocaleString('pt-BR')}
+                          {n.author} • {formatDateTimeBR(n.createdAt, { includeSeconds: true })}
                         </div>
                       </div>
                     ))
@@ -396,7 +397,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                       <div key={h.id} className="p-2 rounded bg-slate-900/70 border border-slate-800/80">
                         <p className="text-slate-200 text-[11px]">{h.action}</p>
                         <div className="text-[10px] text-slate-500 mt-0.5">
-                          {h.user} • {new Date(h.date).toLocaleString('pt-BR')}
+                          {h.user} • {formatDateTimeBR(h.date, { includeSeconds: true })}
                         </div>
                       </div>
                     ))
